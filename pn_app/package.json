@@ -10,12 +10,13 @@
     "@msgpack/msgpack": "^2.8.0",
     "busboy": "^1.6.0",
     "ioredis": "^5.2.3",
+    "mime": "^3.0.0",
     "mysql2": "^2.3.3",
-    "pn_api": "file:../pn_api/pn_api-0.0.1.tgz",
+    "pn_api": "^0.0.1",
     "ws": "^8.10.0"
   },
   "scripts": {
     "start": "node app.js",
-    "install": "npm install"
+    "init": "npm install"
   }
 }

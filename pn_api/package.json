@@ -4,7 +4,7 @@
   "description": "",
   "main": "./dist/index.js",
   "types": "./@types/index.d.ts",
-  "private": true,
+  "private": false,
   "author": "",
   "homepage": "https://u14.com",
   "license": "ISC",
@@ -22,6 +22,7 @@
   },
   "files": [
     "@types",
-    "dist"
+    "dist",
+    "package.json"
   ]
 }

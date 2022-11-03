@@ -1,0 +1,19 @@
+{
+  "name": "create-pn_api",
+  "version": "0.0.1",
+  "description": "genarate nodejs project of pn_api",
+  "private": false,
+  "author": "",
+  "homepage": "",
+  "license": "MIT",
+  "keywords": ["node","api","pn_api","play nodejs api"],
+  "bin": {
+    "create-pn_api": "./bin.js"
+  },
+  "files": [
+    "project_api",
+    "bin.js",
+    "package.json",
+    "README.md"
+  ]
+}
