@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "pf_api": "latest",
-    "pf_xml": "latest"
+    "pn_api": "latest",
     "ws": "latest"
   },
   "devDependencies": {
