@@ -33,11 +33,10 @@ if(process.argv.length<4 || process.argv[2]=="help"){
     const tplDir = path.normalize(__dirname+"/project_api/");
     const appDir = path.normalize(process.cwd()+"/"+process.argv[3]+'/');
     var special_fns = {"package.json":s=>s.replace("fib_app_server", process.argv[3])}
-    var file_arrs = ["package.json", "tsconfig.json", "app.js", "src/api/Public.ts", "src/api/WebsocketHandler.ts"];
+    var file_arrs = ["package.json", "tsconfig.json", "app.js", "src/api/Public.ts", "src/api/WebsocketHandler.ts","www/websocket.html"];
     file_arrs.forEach(e=>{
         copyTextFile(tplDir, appDir, e, special_fns[e]);
     });
-    mkDir(path.normalize(appDir+"www"));
     console.log("your project "+process.argv[3]+"create cpmplete!");
     console.log("call npm install");
     let envOptions = {cwd:appDir};

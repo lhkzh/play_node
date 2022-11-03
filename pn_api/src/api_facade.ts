@@ -299,19 +299,11 @@ function websocket_run_wrap(constructor, opts, filter: ApiFilterHandler): any {
                     if (imp.onOpen) {
                         await imp.onOpen(conn, request, pathArg, wsServer);
                     }
-                    if (imp.onText || imp.onBuffer) {
-                        conn.on("message", m => {
-                            if (typeof(m)=='string') {
-                                imp.onText && imp.onText(m, conn, wsServer);
-                            } else {
-                                imp.onBuffer && imp.onBuffer(m, conn, wsServer);
-                            }
+                    if (imp.onMessage) {
+                        conn.on("message", (data,isBin) => {
+                            imp.onMessage(data,isBin, conn, wsServer);
                         });
-                    } else if (imp.onMessage) {
-                        conn.on("message", m => {
-                            imp.onMessage(m, conn, wsServer);
-                        });
-                    }
+                    } 
                     if (imp.onClose) {
                         conn.on("close", (code: number, message: string) => {
                             imp.onClose(conn, {code: code, message: message}, wsServer);

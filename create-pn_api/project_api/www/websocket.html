@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+        <title>websocket example</title>
+    </head>
+    <body>
+        <script>
+            var url = "ws://"+location.host+"/ws/";
+            var sock;
+            var opened;
+            function doConnect(){
+                document.getElementById("p1").style.display="none";
+                var tk = document.getElementById("token").value.trim()||Date.now().toString(36);
+                sock= new WebSocket(url+tk);
+                sock.onclose = function(){
+                    opened = false;
+                    document.getElementById("p1").style.display="block";
+                }
+                sock.onmessage = function(e){
+                    var p = document.getElementById("msgs");
+                    p.value = p.value+"\n"+e.data;
+                }
+                sock.onopen = function(){
+                    opened = true;
+                    document.getElementById("p2").style.display="block";
+                };
+                sock.onerror = function(){
+                    opened = false;
+                    document.getElementById("p1").style.display="block";
+                }
+            }
+            function doSend(){
+                var e=document.getElementById("chat");
+                sock.send(e.value);
+                e.value=""
+            }
+        </script>
+        <div id="p1">
+            <div>
+                <label>token:</label>
+                <input id="token" type="number" value="233" />
+                <button onclick="doConnect()">connect</button>
+            </div>
+        </div>
+        <div id="p2" style="display: none;">
+            <div id="p22">
+                <input id="chat" type="text" /> <button onclick="doSend()">send</button>
+            </div>
+            <textarea id="msgs" cols="20" rows="10">
+
+            </textarea>
+        </div>
+    </body>
+</html>

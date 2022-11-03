@@ -1,6 +1,6 @@
 {
   "name": "create-pn_api",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "genarate nodejs project of pn_api",
   "private": false,
   "author": "",
