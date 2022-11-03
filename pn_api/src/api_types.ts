@@ -40,7 +40,7 @@ cast_type_map.set(Number, v=> {
 });
 cast_type_map.set(Array, v=> {
     if(!v)return null;
-    if(util.isString(v)){
+    if(typeof(v)=='string'){
         if(v[0]=='[' && v[v.length-1]==']'){
             return JSON.parse(v);
         }
@@ -56,7 +56,7 @@ cast_type_map.set(global["BigInt"], v=> {
 });
 cast_type_map.set(Map, v=> {
     if(util.types.isMap(v))return v;
-    if(!util.isObject(v))return null;
+    if(typeof(v) != 'object')return null;
     let m = new Map();
     for(var k in v){
         m.set(k,v[k]);
@@ -77,7 +77,7 @@ export function type_convert(type:any, arg:any):any {
         return type.cast(arg);
     }
     if(cast_type_map.has(type)){
-        if(util.isObject(arg)){//JSON.stringify TypeArray默认会变object
+        if(typeof(arg) === 'object'){//JSON.stringify TypeArray默认会变object
             arg=Object.values(arg);
         }
         return cast_type_map.get(type)(arg);
@@ -103,7 +103,6 @@ export class UploadFileInfo {
     public contentType:string;
     public fileSize:number;
     public body?:Buffer;
-    public file?:string;
     constructor(v:any){
         if(UploadFileInfo.check(v)){
             this.fileName=v.fileName;
@@ -122,7 +121,7 @@ export class UploadFileInfo {
         }
     }
     public static check(v:any):boolean{
-        return v && util.isString(v.fileName) && util.isString(v.contentType) && (Buffer.isBuffer(v.body) || util.isString(v.file));
+        return v && typeof(v.fileName)=="string" && typeof(v.contentType)=="string" && Buffer.isBuffer(v.body);
     }
 }
 //整形-Number类型
@@ -144,7 +143,7 @@ export class IntNumber{
 //Object，其值是Number其key没有约束
 export class ObjVal_Number {
     public static cast(v:any):{[index:string]:number}{
-        if(v==null || !util.isObject(v))return null;
+        if(v==null || typeof(v) != 'object')return null;
         for(var k in v){
             if(v[k]==null)return null;
             var n=Number(v[k]);
@@ -159,7 +158,7 @@ export class ObjVal_Number {
 //Object，其值是Number其key是有约束为可转为Number的字符串
 export class ObjKV_Number {
     public static cast(v:any):{[index:number]:number}{
-        if(v==null || !util.isObject(v))return null;
+        if(v==null || typeof(v) != 'object')return null;
         for(var k in v){
             if(v[k]==null)return null;
             var n=Number(v[k]);
@@ -182,7 +181,7 @@ export class MapVal_Number extends Map<string,number>{
         }
     }
     public static cast(v:any):Map<string,number>{
-        if(v==null || !util.isObject(v))return null;
+        if(v==null || typeof(v) != 'object')return null;
         var m=new Map<string,number>();
         for(var k in v){
             if(v[k]==null)return null;
@@ -206,7 +205,7 @@ export class MapKV_Number extends Map<number,number>{
         }
     }
     public static cast(v:any):Map<number,number>{
-        if(v==null || !util.isObject(v))return null;
+        if(v==null || typeof(v) != 'object')return null;
         var m=new Map<number,number>(),ek;
         for(var k in v){
             if(v[k]==null)return null;

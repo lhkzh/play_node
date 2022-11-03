@@ -2,6 +2,8 @@
  * 基础定义
  * api返回数据输出writer
  * api请求上下文关联
+ * @author zhh
+ * @copyright u14.com <2019-?>
  */
 import util = require("util");
 import {IncomingMessage, ServerResponse} from "http";
@@ -312,7 +314,7 @@ export class ApiHttpCtx implements AbsHttpCtx {
     //发送一个xml编码对象
     public sendXml(xml: any, contentType?: string) {
         var src = xml;
-        if (!util.isString(xml) || xml.charAt(0) != '<') {
+        if (typeof(xml)!='string' || xml.charAt(0) != '<') {
             xml = require("fast-xml-parser").convertToJsonString(xml);
         }
         this.send_res(src, xml, contentType);
@@ -521,7 +523,7 @@ export class WsApiHttpCtx implements AbsHttpCtx {
     //发送一个xml编码对象
     public sendXml(xml: any, contentType?: string) {
         this.debug(xml);
-        if (!util.isString(xml) || xml.charAt(0) != '<') {
+        if (typeof(xml) != 'string' || xml.charAt(0) != '<') {
             xml = require("fast-xml-parser").convertToJsonString(xml);
         }
         this.sendStr(xml, contentType);
@@ -679,7 +681,7 @@ export function CheckBaseParamRule(type: any, val: any, rule: BaseParamRule): bo
         var eachArr = null;
         if (Array.isArray(val) || util.types.isTypedArray(val)) {
             eachArr = val;
-        } else if (util.isObject(val)) {
+        } else if (typeof(val) == 'object') {
             eachArr = Object.values(val);
         }
         if (eachArr) {
@@ -692,7 +694,7 @@ export function CheckBaseParamRule(type: any, val: any, rule: BaseParamRule): bo
                     if ((rule.min != undefined && eachItem < rule.min) || (rule.max != undefined && eachItem > rule.max)) {
                         return false;
                     }
-                } else if (util.isString(eachItem)) {
+                } else if (typeof(eachItem)=='string') {
                     if ((rule.min != undefined && eachItem.length < rule.min) || (rule.max != undefined && eachItem.length > rule.max)) {
                         return false;
                     }

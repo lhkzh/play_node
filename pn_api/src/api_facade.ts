@@ -70,8 +70,8 @@ export class Facade {
     //是否可以通过websocket数据代理请求
     public static run_by_ws_check(args: any): boolean {
         //[request_id,api_path,params_obj,header_obj,pathArg]
-        if (!Array.isArray(args) || args.length < 4 || !Number.isFinite(args[0]) || !(util.isString(args[1]) || Number.isInteger(args[1])) ||
-            (args[2] != undefined && !util.isObject(args[2])) || (args[3] != undefined && !util.isObject(args[3]))
+        if (!Array.isArray(args) || args.length < 4 || !Number.isFinite(args[0]) || !(typeof(args[1])=='string' || Number.isInteger(args[1])) ||
+            (args[2] != undefined && typeof(args[2]) != 'object') || (args[3] != undefined && typeof(args[3]) != 'object')
         ) {
             return false;
         }
@@ -301,7 +301,7 @@ function websocket_run_wrap(constructor, opts, filter: ApiFilterHandler): any {
                     }
                     if (imp.onText || imp.onBuffer) {
                         conn.on("message", m => {
-                            if (util.isString(m)) {
+                            if (typeof(m)=='string') {
                                 imp.onText && imp.onText(m, conn, wsServer);
                             } else {
                                 imp.onBuffer && imp.onBuffer(m, conn, wsServer);
@@ -502,6 +502,9 @@ function route_proxy(requestMethod: string, srcFn: Function, paramRules: Array<A
                 } else if (ctx.hasQuery(rule.name)) {
                     source = ctx.getQuery();
                 }
+                else if (ctx.getHeaders()[rule.name]) {
+                    source = ctx.getHeaders();
+                }
             } else if (rule.src == "header") {
                 source = ctx.getHeaders();
             } else if (rule.src == "socket") {
@@ -527,9 +530,9 @@ function route_proxy(requestMethod: string, srcFn: Function, paramRules: Array<A
                         args[i] = cvArg;
                     }
                 } else if (rule.type == Array && !Array.isArray(srcArg)) {
-                    if (util.isString(srcArg)) {
+                    if (typeof srcArg === 'string') {
                         args[i] = srcArg.split(rule.separator || (rule.multline ? '\n':','));
-                    } else if (util.isObject(srcArg)) {//JSON.stringify TypeArray默认会变object
+                    } else if (typeof(srcArg) === 'object') {//JSON.stringify TypeArray默认会变object
                         args[i] = Object.values(srcArg);
                     } else {
                         failAt = i;
@@ -544,7 +547,7 @@ function route_proxy(requestMethod: string, srcFn: Function, paramRules: Array<A
                 }
                 if (type == UploadFileInfo) {
                     if (args[i] != null) {
-                        let size = args[i].body.size();
+                        let size = (<UploadFileInfo>args[i]).fileSize;
                         if ((rule.min != undefined && size < rule.min) || (rule.max != undefined && size > rule.max)) {
                             failAt = i;
                             break; // 参数非法
@@ -583,7 +586,7 @@ function route_proxy(requestMethod: string, srcFn: Function, paramRules: Array<A
  */
 function route(method: string, pathInfo: string | ApiMethod, target: any, key: string, desc: PropertyDescriptor, pathCode: number) {
     // console.log(p,typeof target[key])
-    let pathOpt: ApiMethod = !util.isString(pathInfo) ? pathInfo as ApiMethod : null;
+    let pathOpt: ApiMethod = typeof pathInfo != 'string' ? pathInfo as ApiMethod : null;
     let path: string = pathInfo == null ? null : (pathOpt ? pathOpt.path : pathInfo.toString());
     let p: string = (path != null ? path : key);
     if (p != "" && p.charAt(0) != '/') {
@@ -603,7 +606,7 @@ function route(method: string, pathInfo: string | ApiMethod, target: any, key: s
                 tmpRule = {src: "path", name: paramNames[i]};
             }
         }
-        if (!tmpRule || !util.isObject(tmpRule)) {
+        if (!tmpRule || typeof(tmpRule) != 'object') {
             tmpRule = {name: paramNames[i], src: "any"};
         } else if (tmpRule.src == "request") {
             tmpRule.src = "any";
@@ -660,7 +663,7 @@ function route2(method: string, args: Array<any>): Function {
  */
 export function API(info?: string | ApiClass) {
     var map: ApiClass = <ApiClass>info;
-    if (util.isString(info)) {
+    if (typeof info === 'string') {
         map = {path: info + ""};
     } else if (info == null) {
         map = {}

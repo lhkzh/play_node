@@ -179,8 +179,8 @@ export function readFormCallBack(req: IncomingMessage, cb: (rsp:any)=>void, err:
         return;
     }
     var formFiles = {}, formData = {};
-    busboy.on('file', function (fieldname, file, filename, encoding, mimetype) {
-        let fileItem = {fileName: filename, contentType: mimetype, fileSize: 0, encoding: encoding};
+    busboy.on('file', function (name, file, info) {
+        let fileItem = {fileName: info.filename, contentType: info.mimeType, fileSize: 0, encoding: info.encoding};
         if (readFormOptions["filterFile"] && readFormOptions["filterFile"](fileItem, req)==false){
             return;
         }
@@ -197,13 +197,13 @@ export function readFormCallBack(req: IncomingMessage, cb: (rsp:any)=>void, err:
             });
         }
         file.on('end', function () {
-            if (formFiles[fieldname]) {
-                formFiles[fieldname] = [formFiles[fieldname]];
-                formFiles[fieldname].push(fileItem);
+            if (formFiles[name]) {
+                formFiles[name] = [formFiles[name]];
+                formFiles[name].push(fileItem);
             } else {
-                formFiles[fieldname] = fileItem;
+                formFiles[name] = fileItem;
             }
-            formData[fieldname] = formFiles[fieldname]
+            formData[name] = formFiles[name]
         });
     });
     busboy.on('field', function (fieldname, val, fieldnameTruncated, valTruncated, encoding, mimetype) {
