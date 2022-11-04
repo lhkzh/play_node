@@ -8,13 +8,24 @@ import {ApiHttpCtx} from "./api_ctx";
 import {HttpAllMethodRouting} from "./api_route";
 import {readBodyAutoPromise, setReadFormOptions} from "./body_parser";
 
+export interface WebServer_Config_BodyParser{
+    limits?: { fieldNameSize:number, fields:number, files:number, fileSize:number, maxPayLoadSize:number }, 
+    processFile?: (file: Stream, info: { fileName: string, contentType: string }) => string, 
+    filterFile?: (info: { fileName: string, contentType: string }, req: IncomingMessage) => boolean 
+}
+export interface WebServer_Config{
+    port: number, host?: string, dirs?: string[], www?: string, prefixs?: string[], maxHeaderSize?: number, 
+    websocket?: {maxPayload: number, perMessageDeflate?: boolean} , 
+    body_parser?:WebServer_Config_BodyParser
+}
+
 export class WebServer {
     private server: Server;
     private wsServer: WsServer;
     private routing: HttpAllMethodRouting;
     private registFn: Function;
 
-    constructor(private config: { port: number, host?: string, dirs?: string[], www?: string, prefixs?: string[], maxHeaderSize?: number, websocket?: { maxPayload: number, perMessageDeflate?: boolean }, body_parser?: { limits?: { fieldNameSize:number, fields:number, files:number, fileSize:number, maxPayLoadSize:number }, processFile?: (file: Stream, info: { fileName: string, contentType: string }) => string, filterFile?: (info: { fileName: string, contentType: string }, req: IncomingMessage) => boolean } }) {
+    constructor(private config: WebServer_Config) {
         this.routing = new HttpAllMethodRouting(this.config.prefixs);
         this.server = createServer({maxHeaderSize: (config.maxHeaderSize ? config.maxHeaderSize : 4096)},
             this.serverProcess.bind(this));
@@ -39,9 +50,9 @@ export class WebServer {
         return new Promise<boolean>((resolve, reject) => {
             this.server.listen(this.config.port, this.config.host || "0.0.0.0", () => {
                 resolve(true);
-                console.log("server_start_ok: address= http://127.0.0.1:" + this.config.port);
+                console.log("WebServer.start_ok: address= http://127.0.0.1:" + this.config.port);
             }).once("error", e => {
-                console.error("server_start_error", e);
+                console.error("WebServer.start_fail", e);
                 resolve(false);
             });
         });
@@ -52,7 +63,7 @@ export class WebServer {
             this.server.close(() => {
                 resolve(true);
             }).once("error", e => {
-                console.error("server_start_error", e);
+                console.error("WebServer.stop_error", e);
                 resolve(false);
             });
         });
@@ -130,7 +141,7 @@ export class WebServer {
                     }, routeRsp[1]);
                 }).catch(err => {
                     this.sendErrRes(req, res, 500, "Read Error");
-                    console.error("parse_body_err", req.url, err);
+                    console.error("WebServer.parse_body_err", req.url, err);
                 });
             } else {//GET
                 routeRsp[0]({

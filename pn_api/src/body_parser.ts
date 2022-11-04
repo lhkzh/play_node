@@ -1,4 +1,4 @@
-import {IncomingMessage} from "http";
+import { IncomingMessage } from "http";
 import * as querystring from "querystring";
 
 export function readJsonPromise(req: IncomingMessage) {
@@ -7,7 +7,7 @@ export function readJsonPromise(req: IncomingMessage) {
     });
 }
 
-export function readJsonCallBack(req: IncomingMessage, cb: (rsp:any)=>void, err: Function) {
+export function readJsonCallBack(req: IncomingMessage, cb: (rsp: any) => void, err: Function) {
     readTextCallBack(req, (str: string) => {
         let rsp = null;
         try {
@@ -26,7 +26,7 @@ export function readQueryPromise(req: IncomingMessage) {
     });
 }
 
-export function readQueryCallBack(req: IncomingMessage, cb: (rsp:any)=>void, err: Function) {
+export function readQueryCallBack(req: IncomingMessage, cb: (rsp: any) => void, err: Function) {
     readTextCallBack(req, (str: string) => {
         let rsp = null;
         try {
@@ -45,7 +45,7 @@ export function readXmlPromise(req: IncomingMessage) {
     });
 }
 
-export function readXmlCallBack(req: IncomingMessage, cb: (rsp:any)=>void, err: Function) {
+export function readXmlCallBack(req: IncomingMessage, cb: (rsp: any) => void, err: Function) {
     readTextCallBack(req, (str: string) => {
         let rsp = null;
         try {
@@ -65,7 +65,7 @@ export function readTextPromise(req: IncomingMessage) {
     });
 }
 
-export function readTextCallBack(req: IncomingMessage, cb: (rsp:string)=>void, err: Function) {
+export function readTextCallBack(req: IncomingMessage, cb: (rsp: string) => void, err: Function) {
     readRawCallBack(req, (blob: Buffer) => {
         cb(blob.toString("utf8"));
     }, err);
@@ -77,7 +77,7 @@ export function readMsgpackPromise(req: IncomingMessage) {
     });
 }
 
-export function readMsgpackCallBack(req: IncomingMessage, cb: (rsp:any)=>void, err: Function) {
+export function readMsgpackCallBack(req: IncomingMessage, cb: (rsp: any) => void, err: Function) {
     readRawCallBack(req, (blob: Buffer) => {
         let rsp = null;
         try {
@@ -97,7 +97,7 @@ export function readRawPromise(req: IncomingMessage) {
     });
 }
 
-export function readRawCallBack(req: IncomingMessage, cb: (rsp:Buffer)=>void, err: Function) {
+export function readRawCallBack(req: IncomingMessage, cb: (rsp: Buffer) => void, err: Function) {
     let buffer: Buffer;
     if (req["onAborted"]) {//uNetWorking.js
         let res = <any>req;
@@ -124,42 +124,42 @@ export function readRawCallBack(req: IncomingMessage, cb: (rsp:Buffer)=>void, er
         });
     }
 }
-export function readRawProcess(req: IncomingMessage, cb: (isLast:boolean, rsp:Buffer, err:any)=>void) {
-    return new Promise((suc,fail)=>{
+export function readRawProcess(req: IncomingMessage, cb: (isLast: boolean, rsp: Buffer, err: any) => void) {
+    return new Promise((suc, fail) => {
         if (req["onAborted"]) {//uNetWorking.js
             let res = <any>req;
             res.onData((chunk, isLast) => {
                 cb(isLast, chunk, null);
-                if(isLast){
+                if (isLast) {
                     suc(true);
                 }
             });
-            res.onAborted((err)=>{
-                err=new Error(err?err.toString():"abort");
-                cb(false,null,err);
+            res.onAborted((err) => {
+                err = new Error(err ? err.toString() : "abort");
+                cb(false, null, err);
                 fail(err);
             });
         } else {
             req.on('data', chunk => {
-                cb(false,chunk,null);
+                cb(false, chunk, null);
             });
             req.on('error', e => {
                 cb(false, null, e);
                 fail(e);
             });
             req.on('end', () => {
-                cb(true,null,null);
+                cb(true, null, null);
                 suc(true);
             });
         }
     });
 }
 
-let readFormOptions = {limits: {fieldNameSize: 128, fields: 128, files: 1, fileSize: 2 * 1024 * 1024, maxPayLoadSize:16*1024*1024}};
+let readFormOptions = { limits: { fieldNameSize: 128, fields: 128, files: 1, fileSize: 2 * 1024 * 1024, maxPayLoadSize: 8 * 1024 * 1024 } };
 
 export function setReadFormOptions(opts) {
     if (opts) {
-        readFormOptions = {...readFormOptions, ...opts};
+        readFormOptions = { ...readFormOptions, ...opts };
     }
 }
 
@@ -169,10 +169,10 @@ export function readFormPromise(req: IncomingMessage) {
     });
 }
 
-export function readFormCallBack(req: IncomingMessage, cb: (rsp:any)=>void, err: Function) {
+export function readFormCallBack(req: IncomingMessage, cb: (rsp: any) => void, err: Function) {
     var busboy;
     try {
-        busboy = (require('busboy'))({...readFormOptions, headers: req.headers});
+        busboy = (require('busboy'))({ ...readFormOptions, headers: req.headers });
     } catch (e) {
         err(e);
         console.error("try: npm install busboy");
@@ -180,8 +180,8 @@ export function readFormCallBack(req: IncomingMessage, cb: (rsp:any)=>void, err:
     }
     var formFiles = {}, formData = {};
     busboy.on('file', function (name, file, info) {
-        let fileItem = {fileName: info.filename, contentType: info.mimeType, fileSize: 0, encoding: info.encoding};
-        if (readFormOptions["filterFile"] && readFormOptions["filterFile"](fileItem, req)==false){
+        let fileItem = { fileName: info.filename, contentType: info.mimeType, fileSize: 0, encoding: info.encoding };
+        if (readFormOptions["filterFile"] && readFormOptions["filterFile"](fileItem, req) == false) {
             return;
         }
         if (typeof (readFormOptions["processFile"]) === 'function') {
@@ -236,7 +236,7 @@ export function readBodyAutoPromise(req: IncomingMessage) {
     });
 }
 const NUMBER_REG = /^[1-9]\d*$/;
-export function readBodyAutoCallBack(req: IncomingMessage, cb: (rsp:any)=>void, err: Function) {
+export function readBodyAutoCallBack(req: IncomingMessage, cb: (rsp: any) => void, err: Function) {
     let clen = <string>req.headers['content-length'];
     if (!clen) {
         err(new Error("NO_CONTENT_LENGTH"));
