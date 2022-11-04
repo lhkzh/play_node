@@ -6,7 +6,7 @@
   "types": "./@types/index.d.ts",
   "private": false,
   "author": "",
-  "homepage": "https://u14.com",
+  "homepage": "https://github.com/lhkzh/play_node",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^15.12.0",

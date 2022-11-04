@@ -12,7 +12,7 @@
     "ioredis": "^5.2.3",
     "mime": "^3.0.0",
     "mysql2": "^2.3.3",
-    "pn_api": "^0.0.1",
+    "pn_api": "latest",
     "ws": "^8.10.0"
   },
   "scripts": {
