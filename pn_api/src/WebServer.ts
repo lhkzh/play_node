@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import {Stream} from "stream";
 import {createServer, IncomingMessage, Server, ServerResponse} from "http";
+import {createServer as createServerHttps } from "https";
 import {Server as WsServer} from "ws";
 import {api_requireByDir, api_requireByFileList, Facade} from "./api_facade";
 import {ApiHttpCtx} from "./api_ctx";
@@ -11,10 +12,11 @@ import {readBodyAutoPromise, setReadFormOptions} from "./body_parser";
 export interface WebServer_Config_BodyParser{
     limits?: { fieldNameSize:number, fields:number, files:number, fileSize:number, maxPayLoadSize:number }, 
     processFile?: (file: Stream, info: { fileName: string, contentType: string }) => string, 
-    filterFile?: (info: { fileName: string, contentType: string }, req: IncomingMessage) => boolean 
+    filterFile?: (info: { fileName: string, contentType: string }, req: IncomingMessage) => boolean
 }
 export interface WebServer_Config{
-    port: number, host?: string, dirs?: string[], www?: string, prefixs?: string[], maxHeaderSize?: number, 
+    port: number, host?: string, dirs?: string[], www?: string, prefixs?: string[], maxHeaderSize?: number,
+    ssl?:{cert:any,key:any}, 
     websocket?: {maxPayload: number, perMessageDeflate?: boolean} , 
     body_parser?:WebServer_Config_BodyParser
 }
@@ -27,8 +29,10 @@ export class WebServer {
 
     constructor(private config: WebServer_Config) {
         this.routing = new HttpAllMethodRouting(this.config.prefixs);
-        this.server = createServer({maxHeaderSize: (config.maxHeaderSize ? config.maxHeaderSize : 4096)},
-            this.serverProcess.bind(this));
+        var cfg_maxHeaderSize = config.maxHeaderSize||4096;
+        this.server = config.ssl ? 
+            createServerHttps({maxHeaderSize:cfg_maxHeaderSize, ...config.ssl}, this.serverProcess.bind(this))
+            :createServer({maxHeaderSize:cfg_maxHeaderSize}, this.serverProcess.bind(this));
         if (this.config.websocket != null) {
             this.wsServer = new WsServer({...this.config.websocket, noServer: true});
             this.server.on('upgrade', (req, sock, head) => {
