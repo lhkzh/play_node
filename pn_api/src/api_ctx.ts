@@ -7,7 +7,6 @@
  */
 import util = require("util");
 import {IncomingMessage, ServerResponse} from "http";
-
 const ContentType_html = "text/html; charset=utf8";
 const ContentType_xml = "text/xml; charset=utf8";
 const ContentType_json = "application/json; charset=utf8";
@@ -176,11 +175,12 @@ export interface AbsHttpCtx {
 }
 
 function _msgpack_encode(obj:any):Buffer{
-    return require("./api_facade").Facade._msgpack.encode(obj);
+    return Facade._msgpack.encode(obj);
 }
 
 //http-请求上下文关联
 export class ApiHttpCtx implements AbsHttpCtx {
+    public static DEBUG_PICK_HEADERS = ["host", "referer", "user-agent"];
     public req: IncomingMessage;
     public res: ServerResponse;
     private b: any;
@@ -188,7 +188,7 @@ export class ApiHttpCtx implements AbsHttpCtx {
     public pathArg: { [index: string]: string };
     private address: string;
     public writer: AbsRes & { path?: string };
-    public debugMark: { ticket?: string, uin?: any };//调试-输出标记的用户信息
+    public debugMark: any = "";//调试-输出标记的用户信息
     constructor(info: { req: IncomingMessage, res: ServerResponse, address: string, query: any, body?: any, pathArg?: any }, writer?: AbsRes) {
         this.req = info.req;
         this.res = info.res;
@@ -338,14 +338,12 @@ export class ApiHttpCtx implements AbsHttpCtx {
     }
 
     private debug(obj) {
-        if (global["@sys"] && global["@sys"].debug) {
-            let a = this.getHeaders(), h = {},
-                e = ["Host", "Pragma", "User-Agent", "Content-Type", "Referer", "Origin"];
-            for (var k in a) {
-                if (k.startsWith("Accept") || k.startsWith("Cache") || k.startsWith("Upgrade") || e.includes(k) || util.isFunction(a[k])) continue;
-                h[k] = a[k];
-            }
-            console.log("ApiHttpCtx|%s => %s %j", this.getPath(), JSON.stringify(this.debugMark), JSON.stringify(obj), JSON.stringify([this.getBody(), this.getQuery(), h]));
+        if (Facade._hootDebug) {
+            let a = this.getHeaders(), h = ApiHttpCtx.DEBUG_PICK_HEADERS.reduce((p,k)=>{ 
+                if(a[k])p[k]=a[k];
+                return p;
+             },{});
+            Facade._hootDebug("ApiHttpCtx|%s => mark:%j, out:%j, req:%j", this.getPath(), this.debugMark, obj, [this.getBody(), this.getQuery(), h]);
         }
     }
 
@@ -441,7 +439,7 @@ export class WsApiHttpCtx implements AbsHttpCtx {
     private address: string;
     private paramArg: any;//post+get
     private headerArg: any;//headers
-    public debugMark: { ticket?: string, uin?: any };//调试-输出标记的用户信息
+    public debugMark: any = "";//调试-输出标记的用户信息
     //链接socket, 事件消息
     constructor(con, msg: any) {
         this.con = con;
@@ -547,14 +545,14 @@ export class WsApiHttpCtx implements AbsHttpCtx {
             t.writeBigInt64BE(this.src[0], 1);
             buf.copy(t, 9);
             this.con.send(t);
-        } else if (global["@sys"] && global["@sys"].debug) {
-            console.log("ApiWsCtx|%s !=>(sendToClosed) %s", this.getPath(), JSON.stringify(this.debugMark));
+        } else if (Facade._hootDebug) {
+            Facade._hootDebug("ApiWsCtx|%s !=>(sendButClosed) %j", this.getPath(), this.debugMark);
         }
     }
 
     private debug(obj) {
-        if (global["@sys"] && global["@sys"].debug) {
-            console.log("ApiWsCtx|%s => %s %j", this.getPath(), JSON.stringify(this.debugMark), JSON.stringify(obj), JSON.stringify([this.getBody(), this.getQuery(), this.getHeaders(), this.pathArg]));
+        if (Facade._hootDebug) {
+            Facade._hootDebug("ApiWsCtx|%s => mark:%j, out:%j, req:%j", this.getPath(), this.debugMark, obj, [this.getBody(), this.getQuery(), this.getHeaders(), this.pathArg]);
         }
     }
 
@@ -721,13 +719,25 @@ export interface ApiFilterHandler {
     (ctx: AbsHttpCtx): Promise<boolean>;
 }
 
+interface ApiRoute{
+    //访问路径定义，不写则默认函数名or类名
+    path?: string,
+    //权限函数：返回true/false表示是否允许访问
+    filter?: ApiFilterHandler,
+    //序列化结果类
+    res?: new () => AbsRes,
+}
+
+//路由-类型参数
+export interface ApiMethod extends ApiRoute{
+    //是否需要忽略类路径（避免前缀追加问题）
+    absolute?: boolean,
+}
+
 //类标记参数
-export interface ApiClass {
-    path?: string, //类级别路径
-    filter?: ApiFilterHandler, //序列化方式
-    res?: new () => AbsRes, //序列化方式
+export interface ApiClass extends ApiRoute {
+    //本类下面函数的通用的参数规则
+    baseRules?: Array<ApiParamRule>,
 }
-//方法标记参数
-export interface ApiMethod extends ApiClass{
-    absolute?: boolean,//是否需要忽略类路径（避免前缀追加问题）
-}
+
+import { Facade } from "./api_facade";

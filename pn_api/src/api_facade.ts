@@ -24,7 +24,8 @@ import {linkFnComment, getCalledFile} from "./docs_comment_helper";
 import {readRawProcess} from "./body_parser";
 import * as http from "http";
 import * as https from "https";
-import {Reflection} from "./reflection";
+import { DtoConvert, DtoIs } from "./api_dto";
+import { Reflection } from "./reflection";
 
 
 let current_apis: { [index: string]: Function } = {};
@@ -55,6 +56,8 @@ export class Facade {
     public static _hookErr: (ctx: AbsHttpCtx, err: Error) => void;
     //api统计
     public static _hookTj: (apiPath: string, costMsTime: number) => void;
+    //输出接口调用数据
+    public static _hootDebug: (...args) => void;
     //msgpack 工具类
     public static _msgpack: {encode:(d:any)=>any, decode:(b:Buffer|Uint8Array)=>any};
 
@@ -110,7 +113,7 @@ export class Facade {
         }
     }
 
-    public static ctx(This: any): ApiHttpCtx {
+    public static ctx(This: any): AbsHttpCtx {
         return current_api_ctx(This);
     }
 }
@@ -164,7 +167,7 @@ export function api_requireByFileList(allApiFileList: string[], requireFn?: (id:
 const VAR_API_CTX = "$_api_ctx";
 
 //获取当前api请求的关联类
-export function current_api_ctx(This: any): ApiHttpCtx {
+export function current_api_ctx(This: any): AbsHttpCtx {
     if (This && This[VAR_API_CTX]) {
         return This[VAR_API_CTX];
     }
@@ -208,7 +211,7 @@ function api_run_wrap(constructor, res: any, key: string, filter: ApiFilterHandl
             imp[VAR_API_CTX] = ctx;
             try {
                 if (await filter(ctx)) {
-                    if (util.isFunction(imp["$_before"])) {//执行前准备
+                    if (imp["$_before"]) {//执行前准备
                         await imp["$_before"](ctx, apiPath, key);
                     }
                     let ret = await imp[key](ctx);
@@ -225,17 +228,17 @@ function api_run_wrap(constructor, res: any, key: string, filter: ApiFilterHandl
                         ctx.writer.stat(e.code, e.message).out(ctx);
                     } else {//不明确的错误，只告知错误不告知详情，避免系统敏感信息泄露
                         ctx.writer.stat(500, "server busy").out(ctx);
-                        (!Facade._hookErr) && console.error("Facade|api_run_wrap|%s", ctx.getPath(), JSON.stringify(ctx.debugMark), e);
+                        (!Facade._hookErr) && console.error("Facade|api_run_wrap|%s %j %s", ctx.getPath(), ctx.debugMark, e);
                     }
                 }
                 no_error_hook(ctx, e);
             } finally {
                 try {
-                    if (util.isFunction(imp["$_after"])) {//执行后收尾
+                    if (imp["$_after"]) {//执行后收尾
                         await imp["$_after"](ctx, apiPath, key);
                     }
                 } catch (e2) {
-                    no_error_hook(ctx, e2) && console.error("Facade|api_run_wrap|%s", ctx.getPath(), JSON.stringify(ctx.debugMark), e2);
+                    no_error_hook(ctx, e2) && console.error("Facade|api_run_wrap|%s %j %s", ctx.getPath(), ctx.debugMark, e2);
                 }
             }
         } finally {
@@ -243,7 +246,7 @@ function api_run_wrap(constructor, res: any, key: string, filter: ApiFilterHandl
                 ctx.runAfters();
                 // ctx.free();
             } catch (e3) {
-                no_error_hook(ctx, e3) && console.error("Facade|api_run_afters|%s", ctx.getPath(), JSON.stringify(ctx.debugMark), e3);
+                no_error_hook(ctx, e3) && console.error("Facade|api_run_afters|%s %j %s", ctx.getPath(), ctx.debugMark, e3);
             }
             if (start_ms) {//API耗时统计
                 Facade._hookTj(apiPath, Date.now() - start_ms);
@@ -259,7 +262,7 @@ function no_error_hook(ctx: AbsHttpCtx, err: Error) {
         try {
             Facade._hookErr(ctx, err);
         } catch (ehook) {
-            console.error("Facade|api_run_hookErr|%s", ctx.getPath(), ehook);
+            console.error("Facade|api_run_hookErr|%s %s", ctx.getPath(), ehook);
         }
         return false;
     }
@@ -274,19 +277,23 @@ function no_error_hook(ctx: AbsHttpCtx, err: Error) {
  */
 function websocket_run_wrap(constructor, opts, filter: ApiFilterHandler): any {
     return async function (request, socket, head, pathArg, wsServer) {
-        var imp = new constructor();
-        var suc = true;
+        const ctx = new ApiHttpCtx({
+            req: request,
+            res: null,
+            address: request.address,
+            query: {...require("querystring").decode(request.url.split()[1] || ""), body: {}},
+            pathArg: pathArg
+        }, null);
+        let suc = true;
+        let imp: any;
         try {
+            if (filter) {
+                suc = await filter(ctx);
+            }
+            imp = new constructor();
+            imp[VAR_API_CTX] = ctx;
             if (imp.onCheck) {
                 suc = await imp.onCheck(request, socket, pathArg);
-            } else if (filter) {
-                suc = await filter(new ApiHttpCtx({
-                    req: request,
-                    res: null,
-                    address: request.address,
-                    query: {...require("querystring").decode(request.url.split()[1] || ""), body: {}},
-                    pathArg: pathArg
-                }, null));
             }
         } catch (e) {
             suc = false;
@@ -345,7 +352,7 @@ function path_first_upper(p: string) {
  * @param res 类级配置的输出工具类, 基础定义writer=AbsRes的子类（TextRes JsonRes等）
  * @param filter 类权限过滤器
  */
-function regist(constructor: any, path: string, res: any, filter: ApiFilterHandler) {
+function regist(constructor: any, path: string, res: any, filter: ApiFilterHandler, baseRules?: Array<ApiParamRule>) {
     let subs: Array<ApiRouting> = constructor.prototype["$subs"];//提取类属方法的路由定义
     if (!subs || !subs.hasOwnProperty("length")) {//没有注册过子路由函数，跳出。这里不判断array类型，是因为websocket伪造了个假array
         return;
@@ -358,6 +365,24 @@ function regist(constructor: any, path: string, res: any, filter: ApiFilterHandl
          */
         subs.shift();
     }
+    if (baseRules) {
+        baseRules.forEach(br => {
+            if (!br.name) {
+                return;
+            }
+            if (!br.type) {
+                br.type = String;
+            }
+            br = format_rule_src(br);
+            subs.forEach(ar => {
+                if (ar.rules.some(ir => {
+                    return ir.name == br.name;
+                }) == false) {
+                    ar.rules.push(br);
+                }
+            });
+        });
+    }    
     let fnComments = Facade.ignoreApiDoc ? {} : linkFnComment(getCalledFile(__dirname));//获取调用到注册的类的文件,提取文件中的文档注释
 
     path = path != null ? path : "/" + constructor.name.toLowerCase();//类方法名
@@ -500,7 +525,35 @@ function route_proxy(requestMethod: string, srcFn: Function, paramRules: Array<A
             } else if (rule.src == "header") {
                 source = ctx.getHeaders();
             } else if (rule.src == "socket") {
-                source = ctx.getSocket();
+                if (rule.name == "remoteAddress" && ctx.getHeaders()["x-real-ip"]) {
+                    source = ctx.getHeaders();
+                } else if(ctx.getSocket()[rule.name]) {
+                    source = {[rule.name]:ctx.getSocket()[rule.name]}
+                } else {
+                    source = ctx.getSocket();
+                }
+            } else if (rule.src.charAt(0) == "$") {
+                if (rule.src == "$ctx") {
+                    args[i] = ctx;
+                } else if (rule.src == "$headers") {
+                    args[i] = ctx.getHeaders();
+                } else if (rule.src == "$body") {
+                    if (!ctx.isHadBody()) {
+                        failAt = i;
+                        break;
+                    }
+                    if (DtoIs(rule.type)) {
+                        let _imp = DtoConvert(rule.type, ctx.getBody());
+                        if (!_imp) {
+                            failAt = i;
+                            break M;
+                        }
+                        args[i] = _imp;
+                    } else {
+                        args[i] = ctx.getBody();
+                    }
+                }
+                continue;
             }
             if (!args.hasOwnProperty(i) && (source == null || (!source.hasOwnProperty(rule.name) && !source.hasOwnProperty(rule.name + '[]')))) {
                 if (!rule.option) {
@@ -603,7 +656,10 @@ function route(method: string, pathInfo: string | ApiMethod, target: any, key: s
         } else if (tmpRule.src == "request") {
             tmpRule.src = "any";
         }
-        if (method == "GET" && ["post", "any"].includes(tmpRule.src)) {
+        if (paramTypes[i] == UploadFileInfo && tmpRule.src.charAt(0)!='p') {
+            tmpRule.src = "post";
+        }
+        if (method == "GET" && ["post", "any"].includes(tmpRule.src) && tmpRule.src.charAt(0) != '$') {
             if (tmpRule.src != "any") {
                 console.warn("Facade|route param.src!=routing.method => %s %s %s", p, tmpRule.name, tmpRule.src);
             }
@@ -665,7 +721,7 @@ export function API(info?: string | ApiClass) {
     }
     return function (t) {
         if (t["prototype"] && t["prototype"]["$subs"]) {
-            regist(t, map.path, map.res || Facade.defaultRes, map.filter || Facade.defaultFilter);
+            regist(t, map.path, map.res || Facade.defaultRes, map.filter || Facade.defaultFilter, map.baseRules);
         }
     }
 }
@@ -689,6 +745,23 @@ export function WEBSOCKET(path: string = "websocket", opts: { [index: string]: a
     }
 }
 
+function format_rule_src(info: ApiParamRule) {
+    if (!info.src) {
+        info.src = "any";//request
+    }
+    info.src = info.src.toLowerCase();
+    if (info.src == "*" || info.src.toLowerCase() == "request") {
+        info.src = "any";//request
+    } else if (info.src == "query") {
+        info.src = "get";
+    } else if (info.src == "body") {
+        info.src = "post";
+    } else if (info.src.charAt(0) != '$' && ["path", "socket", "header", "cookie", "get", "any"].includes(info.src) == false) {
+        info.src = "post";
+    }
+    return info;
+}
+
 /**
  * 参数规则函数
  * @param info
@@ -696,17 +769,6 @@ export function WEBSOCKET(path: string = "websocket", opts: { [index: string]: a
  */
 export function RULE(info: ApiParamRule) {
     if (info) {
-        if (!info.src || info.src == "*" || info.src.toLowerCase() == "request") {
-            info.src = "any";//request
-        } else if (info.src == "query") {
-            info.src = "get";
-        } else if (info.src == "body") {
-            info.src = "post";
-        }
-        info.src = info.src.toLowerCase();
-        if (info.src != "path" && info.src != "socket" && info.src != "header" && info.src != "get" && info.src != "any") {
-            info.src = "post";
-        }
         //target=类property，key=方法名，idx=第几个参数
         return function (target: any, key: string, idx: number) {
             var argName = getFunctionParamterNames(target[key])[idx];//获取方法的参数名信息
@@ -714,13 +776,62 @@ export function RULE(info: ApiParamRule) {
                 info.name = argName;
             }
             info["var"] = argName;
-            target[key]["param$" + idx] = info;
+            target[key]["param$" + idx] = format_rule_src(info);
         };
     }
     return function () {
     }
 }
 
+/**
+ * request ip of socket
+ * @constructor
+ */
+ export function Ip() {
+    return RULE({ src: "socket", name: "remoteAddress", option: false });
+}
+
+/**
+ * field of header
+ * @param info
+ * @constructor
+ */
+export function Header(info: ApiParamRule = {}) {
+    return RULE({ ...info, src: "header" });
+}
+
+/**
+ * field of query or body
+ * @param info
+ * @constructor
+ */
+export function Param(info: ApiParamRule = {}) {
+    return RULE({ ...info, src: "any" });
+}
+
+/**
+ * Context for the request body
+ * @constructor
+ */
+ export function CtxBody() {
+    return RULE({ src: "$body" });
+}
+
+/**
+ * Context for the request headers
+ * @constructor
+ */
+export function CtxHeaders() {
+    return RULE({ src: "$headers" });
+}
+
+/**
+ * Context for the request
+ * @constructor
+ */
+export function CtxApi() {
+    return RULE({ src: "$ctx" });
+}
 
 /**
  * 接口路由：同时支持 get/post

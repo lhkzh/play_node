@@ -184,38 +184,115 @@ export function docs_desc(url: string, node: DocApiNode, comporess?: boolean, gl
         }
     }
     doc = doc.replace("{$returns}", returns_arr.join("\n"));
+    let ignore_srcs = ["socket", "server", "path", "$ctx", "$headers", "$body"];
+    let ignore_headers = ["host", "Host", "Content-Type", "content-type", "User-Agent", "user-agent"];
+    let req_rules = node.rules ? node.rules.filter(e => {
+        if (e.src) {
+            if (ignore_srcs.includes(e.src)) {
+                return false;
+            }
+            if (e.src == "header" && ignore_headers.includes(e.name)) {
+                return false;
+            }
+        }
+        return true;
+    }) : [];
+    //{$param_desc}
+    if (req_rules.length) {
+        let rules_arr = [];
+        for (let i = 0; i < req_rules.length; i++) {
+            let rule = req_rules[i];
+            let name = rule.name;
+            let type = rule.type.name.toString();
+            let required = rule.option ? "可选" : "必选";
+            let defval = String(rule.option && rule.hasOwnProperty('default') ? rule.default : "");
+            let others = [];
+            if (rule.min != undefined) {
+                others.push("$>=" + rule.min)
+            }
+            if (rule.max != undefined) {
+                others.push("$<=" + rule.max);
+            }
+            if (Array.isArray(rule.in)) {
+                others.push("in[" + rule.in.join(",") + "]");
+            }
+            if (rule.src) {
+                others.push("from:" + rule.src);
+            }
+            let other_src = others.join(" & ");
+            let desc = rule.desc || (node.cms && node.cms.params ? node.cms.params[rule.name] : "");
+            rules_arr.push(
+                "<tr><td>" + name + "</td><td>" + type + "</td><td>" + required + "</td><td>" + defval + "</td><td>" + other_src + "</td><td>" + desc + "</td></tr>"
+            )
+        }
+        doc = doc.replace("{$param_desc}", rules_arr.join("\n"));
+        doc = doc.replace("{$param_descStyle}", "display:block");
+    } else {
+        doc = doc.replace("{$param_descStyle}", "display:none");
+    }
+    //{$returns}
+    if (node.cms && node.cms.returns.length > 0) {
+        let returns_arr = [];
+        for (let i = 0; i < node.cms.returns.length; i++) {
+            let returnNode = node.cms.returns[i];
+            let name = returnNode.name;
+            let type = returnNode.desc.split(" ")[0];
+            let detail = returnNode.desc.substr(type.length).trim();
+            returns_arr.push("<tr><td>" + name + "</td><td>" + type + "</td><td>" + detail + "</td></tr>");
+        }
+        doc = doc.replace("{$returns}", returns_arr.join("\n"));
+        doc = doc.replace("{$returnsStyle}", "display:block");
+    } else {
+        doc = doc.replace("{$returnsStyle}", "display:none");
+    }
+    //{$returnTpls}
+    if (node.cms && node.cms.tpls && node.cms.tpls.length) {
+        let rt_tpls = node.cms.tpls.map(e => {
+            return `<li>${e.name} - ${e.desc}</li>`;
+        }).join("");
+        doc = doc.replace('{$returnTpls}', rt_tpls);
+        doc = doc.replace('{$returnTplsStyle}', "display:block");
+    } else {
+        doc = doc.replace('{$returnTplsStyle}', "display:none");
+    }
 
     //  {$param_input}
-    var ipts_arr = [];
-    var ids_arr = [];
-    for (var i = 0; i < node.rules.length; i++) {
-        var rule = node.rules[i];
-        var name = rule.name;
-        var option = rule.option ? "可选" : "必须";
-        var defval = String(rule.option && rule.hasOwnProperty('default') ? rule.default : "");
-        var desc = rule.desc || "";
-        var ipt = rule.type.name.toString().indexOf("File") > 0 ? "file" : "text";
-        var source = rule.src == "get" ? "GET" : (rule.src == "header" ? "HEADER" : "POST");
+    let ipts_arr = [];
+    let ids_arr = [];
+    let ipts_cookies = [];
+    for (let i = 0; i < req_rules.length; i++) {
+        let rule = req_rules[i];
+        let name = rule.name;
+        let option = rule.option ? "可选" : "必须";
+        let required = rule.option ? 1 : 0;
+        let defval = String(rule.option && rule.hasOwnProperty('default') ? rule.default : "");
+        let desc = rule.desc || "";
+        let ipt = rule.type.name.toString().indexOf("File") > 0 ? "file" : "text";
+        let source = rule.src == "get" ? "GET" : (rule.src == "header" ? "HEADER" : (rule.src == "cookie" ? "COOKIE" : "POST"));
         if (rule.src == "path") {
             continue;
         }
-        var ipt_id = "i_" + name;
-        var tmp = "<tr><td>" + name + "</td><td>" + option + "</td>\n" +
-            "        <td><input data-source=\"" + source + "\" id=\"" + ipt_id + "\"  name=\"" + name + "\" value=\"" + defval + "\" placeholder=\"" + desc + "\" style=\"width:100%;\" class=\"C_input\" type=\"" + ipt + "\" data-type=\"" + ipt + "\"/></td>\n" +
+        let ipt_id = "i_" + name;
+        let tmp = "<tr><td>" + name + "</td><td>" + option + "</td>\n" +
+            "        <td><input data-required='" + required + "' data-source=\"" + source + "\" id=\"" + ipt_id + "\"  name=\"" + name + "\" value=\"" + defval + "\" placeholder=\"" + desc + "\" style=\"width:100%;\" class=\"C_input\" type=\"" + ipt + "\" data-type=\"" + ipt + "\"/></td>\n" +
             "            </tr>";
         if (rule.multline) {
             tmp = "<tr><td>" + name + "</td><td>" + option + "</td>\n" +
-                "        <td><textarea data-source=\"" + source + "\" id=\"" + ipt_id + "\"  name=\"" + name + "\" value=\"" + defval + "\" placeholder=\"" + desc + "\" style=\"width:100%;\" class=\"C_input\" type=\"" + ipt + "\" data-type=\"" + ipt + "\"></textarea></td>\n" +
+                "        <td><textarea data-required='" + required + "' data-source=\"" + source + "\" id=\"" + ipt_id + "\"  name=\"" + name + "\" value=\"" + defval + "\" placeholder=\"" + desc + "\" style=\"width:100%;\" class=\"C_input\" type=\"" + ipt + "\" data-type=\"" + ipt + "\"></textarea></td>\n" +
                 "            </tr>";
+        }
+        if(source=="COOKIE"){
+            ipts_cookies.push(`var c=$.cookie('${name}');if(c){ $('#${ipt_id}').val(c); };`);
         }
         ipts_arr.push(tmp);
         ids_arr.push(ipt_id);
     }
     doc = doc.replace("{$param_input}", ipts_arr.join("\n"));
+    doc = doc.replace("{$param_inputStyle}", ipts_arr.length > 0 ? "display:block" : "display:none");
     if (comporess) {
         doc = html2line(doc);
     }
-    var js_doc = js_tpl_desc.replace("{$form_fields}", JSON.stringify(ids_arr)).replace('{$gvars}', JSON.stringify(globalVars));
+    let js_doc = js_tpl_desc.replace("{$form_fields}", JSON.stringify(ids_arr)).replace('{$gvars}', JSON.stringify(globalVars)).replace("/*{$js_cookie}*/", ipts_cookies.join(""));
     js_doc = doc.replace("{$js_tpl}", js_doc);
     if (doc_res_dir && doc_res_dir.length > 0) {
         while (js_doc.indexOf(CDN_JS_PRE) > 0) {
