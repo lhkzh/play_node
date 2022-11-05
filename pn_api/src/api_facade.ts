@@ -277,13 +277,7 @@ function no_error_hook(ctx: AbsHttpCtx, err: Error) {
  */
 function websocket_run_wrap(constructor, opts, filter: ApiFilterHandler): any {
     return async function (request, socket, head, pathArg, wsServer) {
-        const ctx = new ApiHttpCtx({
-            req: request,
-            res: null,
-            address: request.address,
-            query: {...require("querystring").decode(request.url.split()[1] || ""), body: {}},
-            pathArg: pathArg
-        }, null);
+        const ctx = new WsApiHttpCtx(socket, [0, request.address, require("querystring").decode(request.url.split()[1] || ""), request.headers, pathArg]);
         let suc = true;
         let imp: any;
         try {

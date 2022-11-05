@@ -13,7 +13,7 @@ class Public {
      */
     @GET()
     public async ping(){
-        return "ok4";
+        return "ok";
     }
     /**
      * 测试打印被限制的参数
@@ -38,11 +38,15 @@ class Public {
     @POST()
     public say(name:string){
         return "hi:"+name;
-    }
+    }    
+    /**
+    * 试打印参数
+    * @state ok
+    */
     @POST()
     public upload(file:UploadFileInfo){
-        // fs.writeFileSync(path.resolve(__dirname,"../www", file.fileName), new Uint8Array(file.body.buffer));
-        return file;
+        fs.writeFileSync(path.resolve(__dirname,"../www", file.fileName), new Uint8Array(file.body.buffer));
+        return file.fileName;
     }
     /**
      /**

@@ -41,8 +41,8 @@ class Public {
     }
     @POST()
     public upload(file:UploadFileInfo){
-        // fs.writeFileSync(path.resolve(__dirname,"../www", file.fileName), new Uint8Array(file.body.buffer));
-        return file;
+        fs.writeFileSync(path.resolve(__dirname,"../www", file.fileName), new Uint8Array(file.body.buffer));
+        return file.fileName;
     }
     /**
      /**
