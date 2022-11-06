@@ -7,18 +7,7 @@ var config = {
 };
 require("pn_api").Facade._hootDebug=console.log;
 let imp = new WebServer(config);
-// imp.registAuto(true).start();
-imp.registDiy2(()=>{
-    let p = require("path").resolve("./dist/");
-    for(var k in require.cache){
-        if(k.startsWith(p)){
-            delete require.cache[k];
-        }
-    }
-    require("./dist/Public");
-    require("./dist/WebsocketHandler");
-    //console.warn("end")
-}).start();
+imp.registAuto(true).start();
 if(process.env.OS.toString().toLowerCase().indexOf("windows")>=0){
     require("fs").watch("./dist/",{recursive:true}, (et,fn)=>{
         if(imp["$_reloading_time_out"]){
