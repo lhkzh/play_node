@@ -7,7 +7,9 @@ var config = {
 };
 require("pn_api").Facade._hootDebug=console.log;
 let imp = new WebServer(config);
+console.time("WebServer");
 imp.registAuto(true).start();
+console.timeEnd("WebServer");
 if(process.env.OS.toString().toLowerCase().indexOf("windows")>=0){
     require("fs").watch("./dist/",{recursive:true}, (et,fn)=>{
         if(imp["$_reloading_time_out"]){
