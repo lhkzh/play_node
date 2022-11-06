@@ -1,13 +1,14 @@
 {
   "name": "pn_api",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "",
   "main": "./dist/index.js",
   "types": "./@types/index.d.ts",
   "private": false,
   "author": "",
-  "homepage": "https://u14.com",
-  "license": "ISC",
+  "homepage": "https://github.com/lhkzh/play_node",
+  "keywords": ["api","framework","typescript"],
+  "license": "GNU",
   "devDependencies": {
     "@types/node": "^15.12.0",
     "@types/ws": "^8.5.3",
