@@ -5,7 +5,6 @@
 import * as path from "path";
 import * as fs from "fs";
 
-
 function getCallerFileNameAndLine() {
     try {
         throw Error('');
@@ -13,19 +12,19 @@ function getCallerFileNameAndLine() {
         return err;
     }
 }
-const CALL_AT_LINE_IDX = global["GC"]!=null ? 3:9;
+const CALL_AT_LINE_IDX = global["GC"] != null ? 3 : 9;
 //获取-调用方法的文件
 export function getCalledFile(curFile) {
     curFile = path.resolve(curFile);
-    var stack=getCallerFileNameAndLine().stack.split("\n");
+    var stack = getCallerFileNameAndLine().stack.split("\n");
     // console.log(curFile+" => " +stack.join("___"))
     // var arr = stack.slice(CALL_AT_LINE_IDX).filter(n => { return n.indexOf(".js:")>0/* && n.indexOf(curFile)<0;*/ });
     // var n = arr[0];
-    var n = stack[stack.length-1];
-    if(n.indexOf('(')>0){
-        n=n.substring(n.indexOf('(')+1,n.indexOf('.js:')+3);
-    }else{
-        n=n.substring(n.indexOf('at ')+3, n.indexOf('.js:')+3);
+    var n = stack[stack.length - 1];
+    if (n.indexOf('(') > 0) {
+        n = n.substring(n.indexOf('(') + 1, n.indexOf('.js:') + 3);
+    } else {
+        n = n.substring(n.indexOf('at ') + 3, n.indexOf('.js:') + 3);
     }
     return n;
 }
@@ -48,7 +47,7 @@ export function linkFnComment(fileName) {
         return e.tags.length > 0 && (e.source.includes("@api ") || e.source.includes("@state "));
     });
     // console.log(arr);return;
-    var map = {}, defGroup="all", defState="unknow";
+    var map = {}, defGroup = "all", defState = "unknow";
     arr.forEach((e, idx) => {
         var tagline = e.tags[e.tags.length - 1].line;
         var line;
@@ -81,8 +80,8 @@ export function linkFnComment(fileName) {
                     line = line.substring(line.indexOf(" ")).trim();
                 }
             }
-            var groupRow = e.tags.find(t=>t.tag == "api");
-            var group = groupRow ? groupRow.name:null;
+            var groupRow = e.tags.find(t => t.tag == "api");
+            var group = groupRow ? groupRow.name : null;
             var tags = e.tags.filter(t => {
                 return t.tag != "api";
             });
@@ -93,25 +92,25 @@ export function linkFnComment(fileName) {
             tags.forEach(t => {
                 if (t.tag.includes("return")) {
                     if (!t.description) t.description = "";
-                    returns.push({name: t.name, desc: t.description});
+                    returns.push({ name: t.name, desc: t.description });
                 } else if (t.tag.includes("param")) {
                     params[t.name] = t.description;
                 } else if (t.tag.includes("examples") || t.tag.includes("tpl")) {
-                    tpls.push({name: t.name, desc: t.description});
+                    tpls.push({ name: t.name, desc: t.description });
                 } else if (t.tag.includes("stat")) {
                     state = t.name;
                 }
             });
             if (is_class) {
-                defGroup = group||defGroup;
+                defGroup = group || defGroup;
                 map[line] = {
-                    group: group||defGroup,
+                    group: group || defGroup,
                     desc: e.description,
                     state: state
                 };
             } else {
                 map[line] = {
-                    group: group||defGroup,
+                    group: group || defGroup,
                     desc: e.description,
                     state: state,
                     params: params,
@@ -124,7 +123,7 @@ export function linkFnComment(fileName) {
     return map;
 }
 
-function skipws (str) {
+function skipws(str) {
     let i = 0
     do {
         if (str[i] !== ' ' && str[i] !== '\t') { return i }
@@ -135,7 +134,7 @@ function skipws (str) {
 /* ------- default parsers ------- */
 
 const PARSERS = {
-    parse_tag:(str)=>{
+    parse_tag: (str) => {
         const result = str.match(/^\s*@(\S+)/)
         if (!result) { throw new Error('Invalid `@tag`, missing @ symbol') }
         return {
@@ -143,7 +142,7 @@ const PARSERS = {
             data: { tag: result[1] }
         }
     },
-    parse_type:(str, data)=>{
+    parse_type: (str, data) => {
         if (data.errors && data.errors.length) { return null }
         let pos = skipws(str)
         let res = ''
@@ -161,12 +160,12 @@ const PARSERS = {
             data: { type: res.slice(1, -1) }
         }
     },
-    parse_name:(str, data)=>{
+    parse_name: (str, data) => {
         if (data.errors && data.errors.length) { return null }
         let pos = skipws(str)
         let name = ''
         let brackets = 0
-        let res:any = { optional: false }
+        let res: any = { optional: false }
 
         // if it starts with quoted group assume it is a literal
         const quotedGroups = str.slice(pos).split('"')
@@ -200,7 +199,7 @@ const PARSERS = {
             data: res
         }
     },
-    parse_description:(str, data)=>{
+    parse_description: (str, data) => {
         if (data.errors && data.errors.length) { return null }
         const result = str.match(/^\s+((.|\s)+)?/)
         if (result) {
@@ -218,7 +217,7 @@ const MARKER_END = '*/'
 
 /* ------- util functions ------- */
 
-function find (list, filter) {
+function find(list, filter) {
     let i = list.length
     let matchs = true
 
@@ -241,7 +240,7 @@ function find (list, filter) {
  * @param {Array<function>} parsers Array of parsers to be applied to the source
  * @returns {object} parsed tag node
  */
-function parse_tag (str, parsers) {
+function parse_tag(str, parsers) {
     if (typeof str !== 'string' || str[0] !== '@') { return null }
 
     const data = parsers.reduce(function (state, parser) {
@@ -276,10 +275,10 @@ function parse_tag (str, parsers) {
 /**
  * Parses comment block (array of String lines)
  */
-function parse_block (source, opts) {
+function parse_block(source, opts) {
     const trim = opts.trim
-        ? function trim (s) { return s.trim() }
-        : function trim (s) { return s }
+        ? function trim(s) { return s.trim() }
+        : function trim(s) { return s }
 
     let source_str = source
         .map((line) => { return trim(line.source) })
@@ -388,7 +387,7 @@ function parse_block (source, opts) {
 /**
  * Produces `extract` function with internal state initialized
  */
-function mkextract (opts) {
+function mkextract(opts) {
     let chunk = null
     let indent = 0
     let number = 0
@@ -408,7 +407,7 @@ function mkextract (opts) {
      * Read lines until they make a block
      * Return parsed block once fullfilled or null otherwise
      */
-    return function extract (line) {
+    return function extract(line) {
         let result = null
         const startPos = line.indexOf(MARKER_START)
         const endPos = line.indexOf(MARKER_END)
@@ -455,7 +454,7 @@ function mkextract (opts) {
 }
 /* ------- Public API ------- */
 
-function parse (source, opts) {
+function parse(source, opts) {
     const blocks = []
     const extract = mkextract(opts)
     const lines = source.split(/\n/)

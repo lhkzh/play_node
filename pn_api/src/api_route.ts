@@ -1,4 +1,4 @@
-import {IncomingMessage, ServerResponse} from "http";
+import { IncomingMessage, ServerResponse } from "http";
 
 /**
  * 路由回调方法
@@ -45,7 +45,7 @@ export class HttpMethodRoute implements HttpRouteMatch {
         this.paths.clear();
         this.regs.clear();
     }
-    private reg_more=/[+*]/g;
+    private reg_more = /[+*]/g;
     /**
      * 添加路由
      * @param path
@@ -53,10 +53,10 @@ export class HttpMethodRoute implements HttpRouteMatch {
      */
     public add(path: string, fn: RouteCallBack) {
         let rsp = matchByRegexParamPath(path);
-        if (rsp.keys.length == 0 && this.reg_more.test(path)==false) {
+        if (rsp.keys.length == 0 && this.reg_more.test(path) == false) {
             this.paths.set(path, fn);
         } else {
-            this.regs.set(path, {...rsp, fn: fn});
+            this.regs.set(path, { ...rsp, fn: fn });
         }
     }
 

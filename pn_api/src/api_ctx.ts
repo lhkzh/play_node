@@ -6,7 +6,7 @@
  * @copyright u14.com <2019-?>
  */
 import util = require("util");
-import {IncomingMessage, ServerResponse} from "http";
+import { IncomingMessage, ServerResponse } from "http";
 
 const ContentType_html = "text/html; charset=utf8";
 const ContentType_xml = "text/xml; charset=utf8";
@@ -103,7 +103,7 @@ export class MsgpackRes extends AbsRes {
     }
 
     private toObj() {
-        return {...this};
+        return { ...this };
     }
 
     public encode(): any {
@@ -118,7 +118,7 @@ export class MsgpackRes extends AbsRes {
 export interface AbsHttpCtx {
     pathArg: { [index: string]: string };
     writer: AbsRes & { path?: string };
-    debugMark: { ticket?: string, uin?: any };//调试-输出标记的用户信息
+    debugMark: any;//调试-输出标记的用户信息
     hasFile(k: string): boolean
 
     getFileInfo(k: string): { fileName: string, contentType: string, body: Buffer }
@@ -175,7 +175,7 @@ export interface AbsHttpCtx {
     runAfters();
 }
 
-function _msgpack_encode(obj:any):Buffer{
+function _msgpack_encode(obj: any): Buffer {
     return Facade._msgpack.encode(obj);
 }
 
@@ -189,9 +189,8 @@ export class ApiHttpCtx implements AbsHttpCtx {
     public pathArg: { [index: string]: string };
     private address: string;
     public writer: AbsRes & { path?: string };
-    public debugMark: any;//调试-输出标记的用户信息
+    public debugMark: any = "";//调试-输出标记的用户信息
     constructor(private info: { req: IncomingMessage, res: ServerResponse, address: string, query: any, body?: any, pathArg?: any }, writer?: AbsRes) {
-        this.debugMark = ""; //调试-输出标记的用户信息
         this.req = info.req;
         this.res = info.res;
         this.q = info.query;
@@ -318,7 +317,7 @@ export class ApiHttpCtx implements AbsHttpCtx {
     //发送一个xml编码对象
     public sendXml(xml: any, contentType?: string) {
         var src = xml;
-        if (typeof(xml)!='string' || xml.charAt(0) != '<') {
+        if (typeof (xml) != 'string' || xml.charAt(0) != '<') {
             xml = require("fast-xml-parser").convertToJsonString(xml);
         }
         this.send_res(src, xml, contentType);
@@ -346,7 +345,11 @@ export class ApiHttpCtx implements AbsHttpCtx {
 
     private debug(obj) {
         if (Facade._hootDebug) {
-          Facade._hootDebug("ApiWsCtx|%s => mark:%j, out:%j, req:%j", this.getPath(), this.debugMark, obj, [this.getBody(), this.getQuery(), this.getHeaders(), this.pathArg]);
+            let a = this.getHeaders(), h = ApiHttpCtx.DEBUG_PICK_HEADERS.reduce((p, k) => {
+                if (a[k]) p[k] = a[k];
+                return p;
+            }, {});
+            Facade._hootDebug("ApiHttpCtx|%s => mark:%j, out:%j, req:%j", this.getPath(), this.debugMark, obj, [this.getBody(), this.getQuery(), h]);
         }
     }
 
@@ -392,7 +395,7 @@ export class ApiHttpCtx implements AbsHttpCtx {
      */
     public redirect(url: string) {
         this.writer = null;
-        this.res.writeHead(302, {'Location': url})
+        this.res.writeHead(302, { 'Location': url })
         this.res.end();
     }
 
@@ -421,7 +424,7 @@ export class ApiHttpCtx implements AbsHttpCtx {
     }
 
     public runAfters() {
-        if (this.afters){
+        if (this.afters) {
             let a = this.afters;
             this.afters = null;
             for (let v of a.values()) {
@@ -442,7 +445,7 @@ export class WsApiHttpCtx implements AbsHttpCtx {
     private address: string;
     private paramArg: any;//post+get
     private headerArg: any;//headers
-    public debugMark: { ticket?: string, uin?: any };//调试-输出标记的用户信息
+    public debugMark: any = "";//调试-输出标记的用户信息
     //链接socket, 事件消息
     constructor(con, msg: any) {
         this.con = con;
@@ -524,7 +527,7 @@ export class WsApiHttpCtx implements AbsHttpCtx {
     //发送一个xml编码对象
     public sendXml(xml: any, contentType?: string) {
         this.debug(xml);
-        if (typeof(xml) != 'string' || xml.charAt(0) != '<') {
+        if (typeof (xml) != 'string' || xml.charAt(0) != '<') {
             xml = require("fast-xml-parser").convertToJsonString(xml);
         }
         this.sendStr(xml, contentType);
@@ -554,8 +557,8 @@ export class WsApiHttpCtx implements AbsHttpCtx {
     }
 
     private debug(obj) {
-        if (global["@sys"] && global["@sys"].debug) {
-            console.log("ApiWsCtx|%s => %s %j", this.getPath(), JSON.stringify(this.debugMark), JSON.stringify(obj), JSON.stringify([this.getBody(), this.getQuery(), this.getHeaders(), this.pathArg]));
+        if (Facade._hootDebug) {
+            Facade._hootDebug("ApiWsCtx|%s => mark:%j, out:%j, req:%j", this.getPath(), this.debugMark, obj, [this.getBody(), this.getQuery(), this.getHeaders(), this.pathArg]);
         }
     }
 
@@ -682,7 +685,7 @@ export function CheckBaseParamRule(type: any, val: any, rule: BaseParamRule): bo
         var eachArr = null;
         if (Array.isArray(val) || util.types.isTypedArray(val)) {
             eachArr = val;
-        } else if (typeof(val) == 'object') {
+        } else if (typeof (val) == 'object') {
             eachArr = Object.values(val);
         }
         if (eachArr) {
@@ -695,7 +698,7 @@ export function CheckBaseParamRule(type: any, val: any, rule: BaseParamRule): bo
                     if ((rule.min != undefined && eachItem < rule.min) || (rule.max != undefined && eachItem > rule.max)) {
                         return false;
                     }
-                } else if (typeof(eachItem)=='string') {
+                } else if (typeof (eachItem) == 'string') {
                     if ((rule.min != undefined && eachItem.length < rule.min) || (rule.max != undefined && eachItem.length > rule.max)) {
                         return false;
                     }
@@ -722,7 +725,7 @@ export interface ApiFilterHandler {
     (ctx: AbsHttpCtx): Promise<boolean>;
 }
 
-interface ApiRoute{
+interface ApiRoute {
     //访问路径定义，不写则默认函数名or类名
     path?: string,
     //权限函数：返回true/false表示是否允许访问
@@ -732,7 +735,7 @@ interface ApiRoute{
 }
 
 //路由-类型参数
-export interface ApiMethod extends ApiRoute{
+export interface ApiMethod extends ApiRoute {
     //是否需要忽略类路径（避免前缀追加问题）
     absolute?: boolean,
 }

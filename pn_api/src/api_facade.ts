@@ -57,7 +57,6 @@ export class Facade {
     //加工或加密输出body
     public static _encodePayload: (ctx: AbsHttpCtx, data: string | Buffer) => string | Buffer;
 
-
     //输出接口调用数据
     public static _hootDebug: (...args) => void;
     //错误侦听

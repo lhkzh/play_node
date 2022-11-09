@@ -1,13 +1,13 @@
 import * as fs from "fs";
 import * as path from "path";
-import {Stream} from "stream";
-import {createServer, IncomingMessage, Server, ServerResponse} from "http";
-import {createServer as createServerHttps} from "https";
-import {Server as WsServer} from "ws";
-import {api_requireByDir, api_requireByFileList, Facade} from "./api_facade";
-import {ApiHttpCtx} from "./api_ctx";
-import {HttpAllMethodRouting} from "./api_route";
-import {readBodyAutoPromise, setReadFormOptions} from "./body_parser";
+import { Stream } from "stream";
+import { createServer, IncomingMessage, Server, ServerResponse } from "http";
+import { createServer as createServerHttps } from "https";
+import { Server as WsServer } from "ws";
+import { api_requireByDir, api_requireByFileList, Facade } from "./api_facade";
+import { ApiHttpCtx } from "./api_ctx";
+import { HttpAllMethodRouting } from "./api_route";
+import { readBodyAutoPromise, setReadFormOptions } from "./body_parser";
 
 export interface WebServer_Config_BodyParser {
     limits?: {
@@ -54,7 +54,7 @@ export class WebServer {
         this.routing = new HttpAllMethodRouting(this.config.prefixs);
         var cfg_maxHeaderSize = config.maxHeaderSize || 4096;
         this.server = config.ssl ?
-        createServerHttps({ maxHeaderSize: cfg_maxHeaderSize, ...config.ssl }, this.serverProcess.bind(this))
+            createServerHttps({ maxHeaderSize: cfg_maxHeaderSize, ...config.ssl }, this.serverProcess.bind(this))
             : createServer({ maxHeaderSize: cfg_maxHeaderSize }, this.serverProcess.bind(this));
         if (this.config.websocket != null) {
             this.wsServer = new WsServer({ ...this.config.websocket, noServer: true });
@@ -107,14 +107,14 @@ export class WebServer {
     /**
      * 根据配置的dirs自动扫描注册API
      */
-    public registAuto(whenReloadDelCache=false) {
+    public registAuto(whenReloadDelCache = false) {
         this.registFn = () => {
             WebServer.registByAuto(this.routing, this.config.dirs);
-            if(whenReloadDelCache){
-                this.config.dirs.forEach(tmpDir=>{
+            if (whenReloadDelCache) {
+                this.config.dirs.forEach(tmpDir => {
                     let p = require("path").resolve(tmpDir);
-                    for(var k in require.cache){
-                        if(k.startsWith(p)){
+                    for (var k in require.cache) {
+                        if (k.startsWith(p)) {
                             delete require.cache[k];
                         }
                     }
@@ -143,7 +143,7 @@ export class WebServer {
      * 自定义注册方法注册API
      * @param regFn
      */
-     public registDiy2(regFn?: (id: string) => void) {
+    public registDiy2(regFn?: (id: string) => void) {
         this.registFn = () => {
             WebServer.registByDiy2(this.routing, regFn);
             console.log("WebServer.regist_routing");
@@ -165,13 +165,13 @@ export class WebServer {
     private serverProcess(req: IncomingMessage, res: ServerResponse) {
         let tmps = req.url.split('?');
         let routeRsp = this.routing.matchByParamPath(req.method, tmps[0]);
-        if(routeRsp){
-            if(routeRsp[0]["@"]){// REPEATER
+        if (routeRsp) {
+            if (routeRsp[0]["@"]) {// REPEATER
                 (<Function>routeRsp[0])(req, res);
-            }else if (req.method.charAt(0) == 'P') {//POST - PUT
+            } else if (req.method.charAt(0) == 'P') {//POST - PUT
                 readBodyAutoPromise(req).then(body => {
                     routeRsp[0]({
-                        req: req, res: res, address: tmps[0], query: {...require("querystring").decode(tmps[1] || "")},
+                        req: req, res: res, address: tmps[0], query: { ...require("querystring").decode(tmps[1] || "") },
                         body: body, pathArg: routeRsp[2]
                     }, routeRsp[1]);
                 }).catch(err => {
@@ -180,11 +180,11 @@ export class WebServer {
                 });
             } else {//GET
                 routeRsp[0]({
-                    req: req, res: res, address: tmps[0], query: {...require("querystring").decode(tmps[1] || "")},
+                    req: req, res: res, address: tmps[0], query: { ...require("querystring").decode(tmps[1] || "") },
                     body: null, pathArg: routeRsp[2] || {}
                 }, routeRsp[1]);
             }
-        }else{
+        } else {
             if (this.config.www) {
                 var filepath = path.join(this.config.www, tmps[0]);
                 if (fs.existsSync(filepath)) {
@@ -213,7 +213,7 @@ export class WebServer {
         let rsp = new Facade.defaultRes();
         rsp.msg = msg;
         rsp.code = code;
-        rsp.out(new ApiHttpCtx({req: req, res: res, address: "", query: null}));
+        rsp.out(new ApiHttpCtx({ req: req, res: res, address: "", query: null }));
     }
 
     private getContentType(filePath: string) {
@@ -233,8 +233,8 @@ export class WebServer {
         api_requireByFileList(<string[]>files, requireFn);
         routing.resetAll(Facade._api_routing);
     }
-    public static registByDiy2(routing: HttpAllMethodRouting, diyFn:Function) {
+    public static registByDiy2(routing: HttpAllMethodRouting, diyFn: Function) {
         api_requireByFileList([""], <any>diyFn);
         routing.resetAll(Facade._api_routing);
-    }    
+    }
 }

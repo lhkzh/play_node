@@ -4,7 +4,6 @@ const CDN_JS_PRE = "https://cdn.bootcdn.net/ajax/libs/jquery/3.6.1/";
 const CDN_CSS_PRE = "https://cdn.bootcdn.net/ajax/libs/semantic-ui/2.5.0/";
 const CDN_CSS_PRE_CS = CDN_CSS_PRE + "components/";
 
-
 const DEFAULT_DOCS_OPT = { project: "app", groups: { "user": "客户接口", "server": "内网接口", "dev": "开发工具", "all": "所有", "inner": "系统内循环" } };
 //构造接口文档html
 export function genarateDocsHtml(ctx: AbsHttpCtx, cfg: { api?: string, group?: string, assetLocalDir?: string, docPath?: string, project?: string, groups?: { [index: string]: string } }) {
