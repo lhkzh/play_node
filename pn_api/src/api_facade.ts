@@ -52,9 +52,14 @@ export class Facade {
     //是否忽略api的文档（默认false）
     public static ignoreApiDoc: boolean;
 
+    //加工或解密http.request.body
     public static _decodePayload: (ctx: AbsHttpCtx, data: any) => any;
-    public static _encodePayload: (ctx: AbsHttpCtx, data: any) => any;
+    //加工或加密输出body
+    public static _encodePayload: (ctx: AbsHttpCtx, data: string | Buffer) => string | Buffer;
 
+
+    //输出接口调用数据
+    public static _hootDebug: (...args) => void;
     //错误侦听
     public static _hookErr: (ctx: AbsHttpCtx, err: Error) => void;
     //api统计

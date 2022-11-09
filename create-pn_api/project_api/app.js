@@ -33,14 +33,14 @@ if(process.env.OS.toString().toLowerCase().indexOf("windows")>=0){
     process.on("SIGTERM", stop_server_fn);
 }
 //监听未捕获的同步异常事件
-process.on('uncaughtException', function(e){
-    console.error('uncaughtException:Catch in process', e.message);
+process.on('uncaughtException', function(reason){
+    console.error('uncaughtException:Catch in process =>%s', reason);
 });
 //监听一个当前事件循环中，未被捕获的异常，该异常可能在之后的循环中被捕获
 process.on('unhandledRejection', (reason) => {
-    console.info('unhandledRejection:Catch in process', reason.message);
+    console.info('unhandledRejection:Catch in process =>%s', reason);
 });
 //监听一个Rejected Promise在事件循环的下次轮询或者之后被绑定了一个异常处理函数（catch）时触发
-process.on('rejectionHandled', (p) => {
-    console.info('rejectionHandled:Catch in process', p);
+process.on('rejectionHandled', (reason) => {
+    console.info('rejectionHandled:Catch in process =>%s', reason);
 });

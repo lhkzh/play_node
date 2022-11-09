@@ -8,7 +8,7 @@ import {WebServer, WebServer_Config} from "./WebServer";
 import * as docs_helper from "./docs_helper";
 import * as body_parser from "./body_parser";
 import * as api_route from "./api_route";
-
+export * from "./api_dto";
 import * as helper from "./helper";
 
 export {

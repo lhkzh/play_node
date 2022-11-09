@@ -181,6 +181,7 @@ function _msgpack_encode(obj:any):Buffer{
 
 //http-请求上下文关联
 export class ApiHttpCtx implements AbsHttpCtx {
+    public static DEBUG_PICK_HEADERS = ["host", "referer", "user-agent"];
     public req: IncomingMessage;
     public res: ServerResponse;
     private b: any;
@@ -344,14 +345,8 @@ export class ApiHttpCtx implements AbsHttpCtx {
     }
 
     private debug(obj) {
-        if (global["@sys"] && global["@sys"].debug) {
-            let a = this.getHeaders(), h = {},
-                e = ["Host", "Pragma", "User-Agent", "Content-Type", "Referer", "Origin"];
-            for (var k in a) {
-                if (k.startsWith("Accept") || k.startsWith("Cache") || k.startsWith("Upgrade") || e.includes(k) || util.isFunction(a[k])) continue;
-                h[k] = a[k];
-            }
-            console.log("ApiHttpCtx|%s => %s %j", this.getPath(), JSON.stringify(this.debugMark), JSON.stringify(obj), JSON.stringify([this.getBody(), this.getQuery(), h]));
+        if (Facade._hootDebug) {
+          Facade._hootDebug("ApiWsCtx|%s => mark:%j, out:%j, req:%j", this.getPath(), this.debugMark, obj, [this.getBody(), this.getQuery(), this.getHeaders(), this.pathArg]);
         }
     }
 

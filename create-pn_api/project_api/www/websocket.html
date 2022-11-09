@@ -16,6 +16,7 @@
                 sock.onclose = function(){
                     opened = false;
                     document.getElementById("p1").style.display="block";
+                    document.getElementById("p2").style.display="none";
                 }
                 sock.onmessage = function(e){
                     var p = document.getElementById("msgs");
