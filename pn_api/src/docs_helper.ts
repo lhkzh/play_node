@@ -1,14 +1,14 @@
-import {AbsHttpCtx, ApiParamRule} from "./api_ctx";
-import {Facade} from "./api_facade";
-const CDN_JS_PRE="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.1/";
-const CDN_CSS_PRE="https://cdn.bootcdn.net/ajax/libs/semantic-ui/2.5.0/";
-const CDN_CSS_PRE_CS=CDN_CSS_PRE+"components/";
+import { AbsHttpCtx, ApiParamRule } from "./api_ctx";
+import { Facade } from "./api_facade";
+const CDN_JS_PRE = "https://cdn.bootcdn.net/ajax/libs/jquery/3.6.1/";
+const CDN_CSS_PRE = "https://cdn.bootcdn.net/ajax/libs/semantic-ui/2.5.0/";
+const CDN_CSS_PRE_CS = CDN_CSS_PRE + "components/";
 
 
-const DEFAULT_DOCS_OPT = { project: "app", groups: {"user": "客户接口", "server": "内网接口", "dev": "开发工具", "all": "所有", "inner": "系统内循环"}};
+const DEFAULT_DOCS_OPT = { project: "app", groups: { "user": "客户接口", "server": "内网接口", "dev": "开发工具", "all": "所有", "inner": "系统内循环" } };
 //构造接口文档html
-export function genarateDocsHtml(ctx:AbsHttpCtx, cfg: { api?:string, group?:string, assetLocalDir?:string, docPath?:string, project?: string, groups?:{[index:string]:string}} ) {
-    cfg = {...DEFAULT_DOCS_OPT, ...cfg};
+export function genarateDocsHtml(ctx: AbsHttpCtx, cfg: { api?: string, group?: string, assetLocalDir?: string, docPath?: string, project?: string, groups?: { [index: string]: string } }) {
+    cfg = { ...DEFAULT_DOCS_OPT, ...cfg };
     // let local_doc_res = null;//"doc_res/";//如果选择用默认库中公共CDN资源设置为null
     let docs = Facade._docs;
     let source: string;
@@ -16,7 +16,7 @@ export function genarateDocsHtml(ctx:AbsHttpCtx, cfg: { api?:string, group?:stri
         let service = decodeURIComponent(cfg.api);
         // console.log(JSON.stringify(docs));
         var foundFn = null;
-        M:for (var k in docs) {
+        M: for (var k in docs) {
             var module = docs[k].list;
             for (var f of module) {
                 if (f.path == service) {
@@ -30,11 +30,11 @@ export function genarateDocsHtml(ctx:AbsHttpCtx, cfg: { api?:string, group?:stri
         }
         // console.log(JSON.stringify(foundFn))
         let headers = ctx.getHeaders();
-        let url = (headers["X-Forwarded-Proto"]||"http")+"://" + headers["host"] + service;
-        source = docs_desc(url, foundFn, false, ["X-Wx-Skey","uid"], cfg.assetLocalDir);
+        let url = (headers["X-Forwarded-Proto"] || "http") + "://" + headers["host"] + service;
+        source = docs_desc(url, foundFn, false, ["X-Wx-Skey", "uid"], cfg.assetLocalDir);
     } else {
         // console.log(docs)
-        source = docs_list(cfg.project, docs, cfg.group || "all", cfg.groups, true, cfg.assetLocalDir, cfg.docPath||ctx.getPath());
+        source = docs_list(cfg.project, docs, cfg.group || "all", cfg.groups, true, cfg.assetLocalDir, cfg.docPath || ctx.getPath());
     }
     return source;
 }
@@ -49,9 +49,9 @@ export function genarateDocsHtml(ctx:AbsHttpCtx, cfg: { api?:string, group?:stri
  * @param comporess
  * @param doc_res_dir
  */
-export function docs_list(project: string, docs: { [index: string]: DocNode }, group?: string, groupNameMap?: { [index: string]: string }, comporess?: boolean, doc_res_dir?: string, curPagePath:string="docs.php") {
+export function docs_list(project: string, docs: { [index: string]: DocNode }, group?: string, groupNameMap?: { [index: string]: string }, comporess?: boolean, doc_res_dir?: string, curPagePath: string = "docs.php") {
     group = group || "all";
-    groupNameMap = groupNameMap || {"user": "客户接口", "server": "内网接口", "dev": "开发工具", "all": "所有"};
+    groupNameMap = groupNameMap || { "user": "客户接口", "server": "内网接口", "dev": "开发工具", "all": "所有" };
     var group_options = "";
     for (var k in groupNameMap) {
         var selected = group == k ? ' selected' : '';
@@ -62,7 +62,7 @@ export function docs_list(project: string, docs: { [index: string]: DocNode }, g
     var No = 0;
     for (var base in docs) {
         var node: DocNode = docs[base];
-        if(!node.list || !node.list.length){
+        if (!node.list || !node.list.length) {
             continue;
         }
         var module = `<tr style='border-top: 3px solid #333; border-bottom: 2px solid #ccc; background: #ddd;'>
@@ -78,7 +78,7 @@ export function docs_list(project: string, docs: { [index: string]: DocNode }, g
             if (group != "all" && (!item.cms || item.cms.group != group)) {
                 continue;
             }
-            var link = curPagePath+"?s=" + encodeURIComponent(item.path);
+            var link = curPagePath + "?s=" + encodeURIComponent(item.path);
             parts.push(
                 "<tr><td style='text-align: center;'>" + No + "</td><td style='text-align: center;'>" + (item.cms ? item.cms.state : "unknow") + "</td>"
             );
@@ -144,34 +144,6 @@ export function docs_desc(url: string, node: DocApiNode, comporess?: boolean, gl
     } else {
         doc = doc.replace("{$request_method}", '<option value="POST">POST</option>');
     }
-    //{$param_desc}
-    var rules_arr = [];
-    for (var i = 0; i < node.rules.length; i++) {
-        var rule = node.rules[i];
-        var name = rule.name;
-        var type = rule.type.name.toString();
-        var required = rule.option ? "可选" : "必选";
-        var defval = String(rule.option && rule.hasOwnProperty('default') ? rule.default : "");
-        var others = [];
-        if (rule.min != undefined) {
-            others.push("$>=" + rule.min)
-        }
-        if (rule.max != undefined) {
-            others.push("$<=" + rule.max);
-        }
-        if (Array.isArray(rule.in)) {
-            others.push("in[" + rule.in.join(",") + "]");
-        }
-        if (rule.src) {
-            others.push("from:" + rule.src);
-        }
-        var other_src = others.join(" & ");
-        var desc = rule.desc || (node.cms && node.cms.params ? node.cms.params[rule.name] : "");
-        rules_arr.push(
-            "<tr><td>" + name + "</td><td>" + type + "</td><td>" + required + "</td><td>" + defval + "</td><td>" + other_src + "</td><td>" + desc + "</td></tr>"
-        )
-    }
-    doc = doc.replace("{$param_desc}", rules_arr.join("\n"));
     //{$returns}
     var returns_arr = [];
     if (node.cms && node.cms.returns.length > 0) {
@@ -184,38 +156,115 @@ export function docs_desc(url: string, node: DocApiNode, comporess?: boolean, gl
         }
     }
     doc = doc.replace("{$returns}", returns_arr.join("\n"));
-
+    let ignore_srcs = ["socket", "server", "path", "$ctx", "$headers", "$body"];
+    let ignore_headers = ["host", "Host", "Content-Type", "content-type", "User-Agent", "user-agent"];
+    let req_rules = node.rules ? node.rules.filter(e => {
+        if (e.src) {
+            if (ignore_srcs.includes(e.src)) {
+                return false;
+            }
+            if (e.src == "header" && ignore_headers.includes(e.name)) {
+                return false;
+            }
+        }
+        return true;
+    }) : [];
+    //{$param_desc}
+    if (req_rules.length) {
+        let rules_arr = [];
+        for (let i = 0; i < req_rules.length; i++) {
+            let rule = req_rules[i];
+            let name = rule.name;
+            let type = rule.type.name.toString();
+            let required = rule.option ? "可选" : "必选";
+            let defval = String(rule.option && rule.hasOwnProperty('default') ? rule.default : "");
+            let others = [];
+            if (rule.min != undefined) {
+                others.push("$>=" + rule.min);
+            }
+            if (rule.max != undefined) {
+                others.push("$<=" + rule.max);
+            }
+            if (Array.isArray(rule.in)) {
+                others.push("in[" + rule.in.join(",") + "]");
+            }
+            if (rule.src) {
+                others.push("from:" + rule.src);
+            }
+            let other_src = others.join(" & ");
+            let desc = rule.desc || (node.cms && node.cms.params ? node.cms.params[rule.name] : "");
+            rules_arr.push("<tr><td>" + name + "</td><td>" + type + "</td><td>" + required + "</td><td>" + defval + "</td><td>" + other_src + "</td><td>" + desc + "</td></tr>");
+        }
+        doc = doc.replace("{$param_desc}", rules_arr.join("\n"));
+        doc = doc.replace("{$param_descStyle}", "display:block");
+    }
+    else {
+        doc = doc.replace("{$param_descStyle}", "display:none");
+    }
+    //{$returns}
+    if (node.cms && node.cms.returns.length > 0) {
+        let returns_arr = [];
+        for (let i = 0; i < node.cms.returns.length; i++) {
+            let returnNode = node.cms.returns[i];
+            let name = returnNode.name;
+            let type = returnNode.desc.split(" ")[0];
+            let detail = returnNode.desc.substr(type.length).trim();
+            returns_arr.push("<tr><td>" + name + "</td><td>" + type + "</td><td>" + detail + "</td></tr>");
+        }
+        doc = doc.replace("{$returns}", returns_arr.join("\n"));
+        doc = doc.replace("{$returnsStyle}", "display:block");
+    }
+    else {
+        doc = doc.replace("{$returnsStyle}", "display:none");
+    }
+    //{$returnTpls}
+    if (node.cms && node.cms.tpls && node.cms.tpls.length) {
+        let rt_tpls = node.cms.tpls.map(e => {
+            return `<li>${e.name} - ${e.desc}</li>`;
+        }).join("");
+        doc = doc.replace('{$returnTpls}', rt_tpls);
+        doc = doc.replace('{$returnTplsStyle}', "display:block");
+    }
+    else {
+        doc = doc.replace('{$returnTplsStyle}', "display:none");
+    }
     //  {$param_input}
-    var ipts_arr = [];
-    var ids_arr = [];
-    for (var i = 0; i < node.rules.length; i++) {
-        var rule = node.rules[i];
-        var name = rule.name;
-        var option = rule.option ? "可选" : "必须";
-        var defval = String(rule.option && rule.hasOwnProperty('default') ? rule.default : "");
-        var desc = rule.desc || "";
-        var ipt = rule.type.name.toString().indexOf("File") > 0 ? "file" : "text";
-        var source = rule.src == "get" ? "GET" : (rule.src == "header" ? "HEADER" : "POST");
+    let ipts_arr = [];
+    let ids_arr = [];
+    let ipts_cookies = [];
+    for (let i = 0; i < req_rules.length; i++) {
+        let rule = req_rules[i];
+        let name = rule.name;
+        let option = rule.option ? "可选" : "必须";
+        let required = rule.option ? 1 : 0;
+        let defval = String(rule.option && rule.hasOwnProperty('default') ? rule.default : "");
+        let desc = rule.desc || "";
+        let ipt = rule.type.name.toString().indexOf("File") > 0 ? "file" : "text";
+        let source = rule.src == "get" ? "GET" : (rule.src == "header" ? "HEADER" : (rule.src == "cookie" ? "COOKIE" : "POST"));
         if (rule.src == "path") {
             continue;
         }
-        var ipt_id = "i_" + name;
-        var tmp = "<tr><td>" + name + "</td><td>" + option + "</td>\n" +
-            "        <td><input data-source=\"" + source + "\" id=\"" + ipt_id + "\"  name=\"" + name + "\" value=\"" + defval + "\" placeholder=\"" + desc + "\" style=\"width:100%;\" class=\"C_input\" type=\"" + ipt + "\" data-type=\"" + ipt + "\"/></td>\n" +
+        let ipt_id = "i_" + name;
+        let tmp = "<tr><td>" + name + "</td><td>" + option + "</td>\n" +
+            "        <td><input data-required='" + required + "' data-source=\"" + source + "\" id=\"" + ipt_id + "\"  name=\"" + name + "\" value=\"" + defval + "\" placeholder=\"" + desc + "\" style=\"width:100%;\" class=\"C_input\" type=\"" + ipt + "\" data-type=\"" + ipt + "\"/></td>\n" +
             "            </tr>";
         if (rule.multline) {
             tmp = "<tr><td>" + name + "</td><td>" + option + "</td>\n" +
-                "        <td><textarea data-source=\"" + source + "\" id=\"" + ipt_id + "\"  name=\"" + name + "\" value=\"" + defval + "\" placeholder=\"" + desc + "\" style=\"width:100%;\" class=\"C_input\" type=\"" + ipt + "\" data-type=\"" + ipt + "\"></textarea></td>\n" +
+                "        <td><textarea data-required='" + required + "' data-source=\"" + source + "\" id=\"" + ipt_id + "\"  name=\"" + name + "\" value=\"" + defval + "\" placeholder=\"" + desc + "\" style=\"width:100%;\" class=\"C_input\" type=\"" + ipt + "\" data-type=\"" + ipt + "\"></textarea></td>\n" +
                 "            </tr>";
+        }
+        if (source == "COOKIE") {
+            ipts_cookies.push(`var c=$.cookie('${name}');if(c){ $('#${ipt_id}').val(c); };`);
         }
         ipts_arr.push(tmp);
         ids_arr.push(ipt_id);
     }
     doc = doc.replace("{$param_input}", ipts_arr.join("\n"));
+    doc = doc.replace("{$param_inputStyle}", ipts_arr.length > 0 ? "display:block" : "display:none");
     if (comporess) {
         doc = html2line(doc);
     }
-    var js_doc = js_tpl_desc.replace("{$form_fields}", JSON.stringify(ids_arr)).replace('{$gvars}', JSON.stringify(globalVars));
+    let js_doc = js_tpl_desc.replace("{$form_fields}", JSON.stringify(ids_arr)).replace('{$gvars}', JSON.stringify(globalVars)).replace("/*{$js_cookie}*/", ipts_cookies.join(""));
     js_doc = doc.replace("{$js_tpl}", js_doc);
     if (doc_res_dir && doc_res_dir.length > 0) {
         while (js_doc.indexOf(CDN_JS_PRE) > 0) {
@@ -240,35 +289,37 @@ export function html2line(source: string): string {
 }
 
 interface DocNode {
-    name:string,
-    method:string,
-    cms?:{group:string,desc:string,state:string},
-    list:Array<{
-        method?:string,
-        path:string,
-        code:number,
-        rules:Array<any>,
-        name:string,
-        cms?:{group:string,desc:string,
-            params:{[index:string]:string},
-            returns:[{name:string,desc:string}],
-            tpls:[{name:string,desc:string}],
-            state:string
+    name: string,
+    method: string,
+    cms?: { group: string, desc: string, state: string },
+    list: Array<{
+        method?: string,
+        path: string,
+        code: number,
+        rules: Array<any>,
+        name: string,
+        cms?: {
+            group: string, desc: string,
+            params: { [index: string]: string },
+            returns: [{ name: string, desc: string }],
+            tpls: [{ name: string, desc: string }],
+            state: string
         }
     }>
 }
 
 interface DocApiNode {
-    method?:string,
-    name:string,
-    path:string,
-    code:number,
-    rules:Array<ApiParamRule>,
-    cms?:{group:string,desc:string,
-        params:{[index:string]:string},
-        returns:[{name:string,desc:string}],
-        tpls:[{name:string,desc:string}],
-        state:string
+    method?: string,
+    name: string,
+    path: string,
+    code: number,
+    rules: Array<ApiParamRule>,
+    cms?: {
+        group: string, desc: string,
+        params: { [index: string]: string },
+        returns: [{ name: string, desc: string }],
+        tpls: [{ name: string, desc: string }],
+        state: string
     }
 }
 
@@ -347,7 +398,7 @@ const tpl_api_desc = `
 <h5>
     请求模拟 &nbsp;&nbsp;
 </h5>
-<table class="ui green celled striped table" >
+<table class="ui green celled striped table" style="{$param_inputStyle}" >
     <thead>
         <tr><th>参数</th><th>是否必填</th><th>值</th></tr>
     </thead>

@@ -2,21 +2,46 @@ import * as fs from "fs";
 import * as path from "path";
 import {Stream} from "stream";
 import {createServer, IncomingMessage, Server, ServerResponse} from "http";
+import {createServer as createServerHttps} from "https";
 import {Server as WsServer} from "ws";
 import {api_requireByDir, api_requireByFileList, Facade} from "./api_facade";
 import {ApiHttpCtx} from "./api_ctx";
 import {HttpAllMethodRouting} from "./api_route";
 import {readBodyAutoPromise, setReadFormOptions} from "./body_parser";
 
-export interface WebServer_Config_BodyParser{
-    limits?: { fieldNameSize:number, fields:number, files:number, fileSize:number, maxPayLoadSize:number }, 
-    processFile?: (file: Stream, info: { fileName: string, contentType: string }) => string, 
-    filterFile?: (info: { fileName: string, contentType: string }, req: IncomingMessage) => boolean 
+export interface WebServer_Config_BodyParser {
+    limits?: {
+        fieldNameSize: number;
+        fields: number;
+        files: number;
+        fileSize: number;
+        maxPayLoadSize: number;
+    };
+    processFile?: (file: Stream, info: {
+        fileName: string;
+        contentType: string;
+    }) => string;
+    filterFile?: (info: {
+        fileName: string;
+        contentType: string;
+    }, req: IncomingMessage) => boolean;
 }
-export interface WebServer_Config{
-    port: number, host?: string, dirs?: string[], www?: string, prefixs?: string[], maxHeaderSize?: number, 
-    websocket?: {maxPayload: number, perMessageDeflate?: boolean} , 
-    body_parser?:WebServer_Config_BodyParser
+export interface WebServer_Config {
+    port?: number;
+    host?: string;
+    dirs?: string[];
+    www?: string;
+    prefixs?: string[];
+    maxHeaderSize?: number;
+    ssl?: {
+        cert: any;
+        key: any;
+    };
+    websocket?: {
+        maxPayload: number;
+        perMessageDeflate?: boolean;
+    };
+    body_parser?: WebServer_Config_BodyParser;
 }
 
 export class WebServer {
@@ -27,19 +52,22 @@ export class WebServer {
 
     constructor(private config: WebServer_Config) {
         this.routing = new HttpAllMethodRouting(this.config.prefixs);
-        this.server = createServer({maxHeaderSize: (config.maxHeaderSize ? config.maxHeaderSize : 4096)},
-            this.serverProcess.bind(this));
+        var cfg_maxHeaderSize = config.maxHeaderSize || 4096;
+        this.server = config.ssl ?
+        createServerHttps({ maxHeaderSize: cfg_maxHeaderSize, ...config.ssl }, this.serverProcess.bind(this))
+            : createServer({ maxHeaderSize: cfg_maxHeaderSize }, this.serverProcess.bind(this));
         if (this.config.websocket != null) {
-            this.wsServer = new WsServer({...this.config.websocket, noServer: true});
+            this.wsServer = new WsServer({ ...this.config.websocket, noServer: true });
             this.server.on('upgrade', (req, sock, head) => {
                 let rsp = this.routing._upgrade.match(req.url.split('?')[0]);
                 if (!rsp) {
                     sock.write('HTTP/1.1 404 Not Found\r\n\r\n');
                     sock.destroy();
-                } else {
+                }
+                else {
                     (<any>rsp[0])(req, sock, head, rsp[2], this.wsServer);
                 }
-            })
+            });
         }
         if (this.config.body_parser) {
             setReadFormOptions(this.config.body_parser);
@@ -47,14 +75,21 @@ export class WebServer {
     }
 
     public start() {
-        return new Promise<boolean>((resolve, reject) => {
-            this.server.listen(this.config.port, this.config.host || "0.0.0.0", () => {
+        return new Promise((resolve, reject) => {
+            let on_suc = () => {
                 resolve(true);
                 console.log("WebServer.start_ok: address= http://127.0.0.1:" + this.config.port);
-            }).once("error", e => {
-                console.error("WebServer.start_fail", e);
+            };
+            let on_fail = e => {
+                console.error("WebServer.start_fail %s", e);
                 resolve(false);
-            });
+            };
+            if (this.config.port > 0) {
+                this.server.listen(this.config.port, this.config.host || "0.0.0.0", on_suc).once("error", on_fail);
+            }
+            else {
+                this.server.listen(this.config.host || "0.0.0.0", on_suc).once("error", on_fail);
+            }
         });
     }
 

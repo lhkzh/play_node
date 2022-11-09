@@ -2,6 +2,7 @@
 export *  from "./api_types";
 export *  from "./api_ctx";
 export *  from "./api_facade";
+export *  from "./api_dto";
 
 import {WebServer, WebServer_Config} from "./WebServer";
 import * as docs_helper from "./docs_helper";

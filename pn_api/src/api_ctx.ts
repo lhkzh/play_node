@@ -176,7 +176,7 @@ export interface AbsHttpCtx {
 }
 
 function _msgpack_encode(obj:any):Buffer{
-    return require("./api_facade").Facade._msgpack.encode(obj);
+    return Facade._msgpack.encode(obj);
 }
 
 //http-请求上下文关联
@@ -188,11 +188,11 @@ export class ApiHttpCtx implements AbsHttpCtx {
     public pathArg: { [index: string]: string };
     private address: string;
     public writer: AbsRes & { path?: string };
-    public debugMark: { ticket?: string, uin?: any };//调试-输出标记的用户信息
-    constructor(info: { req: IncomingMessage, res: ServerResponse, address: string, query: any, body?: any, pathArg?: any }, writer?: AbsRes) {
+    public debugMark: any;//调试-输出标记的用户信息
+    constructor(private info: { req: IncomingMessage, res: ServerResponse, address: string, query: any, body?: any, pathArg?: any }, writer?: AbsRes) {
+        this.debugMark = ""; //调试-输出标记的用户信息
         this.req = info.req;
         this.res = info.res;
-        this.b = info.body;
         this.q = info.query;
         this.pathArg = info.pathArg;
         this.address = info.address;
@@ -207,6 +207,9 @@ export class ApiHttpCtx implements AbsHttpCtx {
 
     //解析或者获取上传的body对象：需要post/put
     public getBody(): any {
+        if (this.isHadBody()) {
+            this.b = Facade._decodePayload ? Facade._decodePayload(this, this.info.body) : this.info.body;
+        }
         return this.b;
     }
 
@@ -333,6 +336,9 @@ export class ApiHttpCtx implements AbsHttpCtx {
         this.debug(src);
         if (contentType) {
             this.res.setHeader("Content-Type", contentType);
+        }
+        if (Facade._encodePayload) {
+            data = Facade._encodePayload(this, data);
         }
         this.res.end(data);
     }
@@ -721,13 +727,25 @@ export interface ApiFilterHandler {
     (ctx: AbsHttpCtx): Promise<boolean>;
 }
 
+interface ApiRoute{
+    //访问路径定义，不写则默认函数名or类名
+    path?: string,
+    //权限函数：返回true/false表示是否允许访问
+    filter?: ApiFilterHandler,
+    //序列化结果类
+    res?: new () => AbsRes,
+}
+
+//路由-类型参数
+export interface ApiMethod extends ApiRoute{
+    //是否需要忽略类路径（避免前缀追加问题）
+    absolute?: boolean,
+}
+
 //类标记参数
-export interface ApiClass {
-    path?: string, //类级别路径
-    filter?: ApiFilterHandler, //序列化方式
-    res?: new () => AbsRes, //序列化方式
+export interface ApiClass extends ApiRoute {
+    //本类下面函数的通用的参数规则
+    baseRules?: Array<ApiParamRule>,
 }
-//方法标记参数
-export interface ApiMethod extends ApiClass{
-    absolute?: boolean,//是否需要忽略类路径（避免前缀追加问题）
-}
+
+import { Facade } from "./api_facade";

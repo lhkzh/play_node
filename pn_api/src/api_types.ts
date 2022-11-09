@@ -128,16 +128,13 @@ export class UploadFileInfo {
 export class IntNumber{
     private n:number;
     constructor(v:any){
-        this.n=v==undefined?NaN:Math.round(Number(v));
+        this.n=v|0;
     }
     public valueOf():number{
         return this.n;
     }
     public static cast(v:any):number{
-        if(v==undefined){
-            return null;
-        }
-        return Math.round(Number(v));
+        return v|0;
     }
 }
 //Object，其值是Number其key没有约束

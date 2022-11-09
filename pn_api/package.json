@@ -1,11 +1,12 @@
 {
   "name": "pn_api",
-  "version": "0.0.4",
+  "version": "0.0.7",
   "description": "",
   "main": "./dist/index.js",
   "types": "./@types/index.d.ts",
   "private": false,
   "author": "",
+  "keywords": ["node","framework","api"],
   "homepage": "https://github.com/lhkzh/play_node",
   "license": "ISC",
   "devDependencies": {
