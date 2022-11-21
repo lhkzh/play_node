@@ -8,7 +8,7 @@
   "author": "",
   "homepage": "https://github.com/lhkzh/play_node",
   "keywords": ["api","framework","typescript"],
-  "license": "GNU",
+  "license": "MIT",
   "devDependencies": {
     "@types/node": "^15.12.0",
     "@types/ws": "^8.5.3",

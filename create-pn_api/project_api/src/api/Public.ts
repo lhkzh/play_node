@@ -35,7 +35,7 @@ class Public {
     return { name: name, age: age };
   }
   /**
-   * 试打印参数
+   * 测试打印参数
    * @state ok
    */
   @POST()
@@ -43,21 +43,24 @@ class Public {
     return "hi:" + a.reduce((s, e) => { s.push(e); return s; }, []).join(",");
   }
   /**
-   * 试打印参数
+   * 测试打印参数
    * @state ok
    */
   @POST()
   public say(name: string) {
     return "hi:" + name;
   }
+  /**
+   * 测试文件上传
+   * @state ok
+   */
   @POST()
   public upload(file: UploadFileInfo) {
     fs.writeFileSync(path.resolve(__dirname, "../www", file.fileName), new Uint8Array(file.body.buffer));
     return file.fileName;
   }
   /**
-   /**
-   * 转发
+   * 测试转发
    * 请求中继转发给其他地址处理
    * @state ok
    */
