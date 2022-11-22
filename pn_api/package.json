@@ -7,17 +7,21 @@
   "private": false,
   "author": "",
   "homepage": "https://github.com/lhkzh/play_node",
-  "keywords": ["api","framework","typescript"],
+  "keywords": [
+    "api",
+    "framework",
+    "typescript"
+  ],
   "license": "MIT",
   "devDependencies": {
+    "@msgpack/msgpack": "^2.8.0",
     "@types/node": "^15.12.0",
     "@types/ws": "^8.5.3",
-    "@msgpack/msgpack": "^2.8.0",
     "fast-xml-parser": "^4.0.11"
   },
   "dependencies": {
-    "lodash._baseclone": "^4.5.7",
     "busboy": "^1.6.0",
+    "lodash._baseclone": "^4.5.7",
     "mime": "^3.0.0",
     "ws": "^8.10.0"
   },
