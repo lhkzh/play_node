@@ -173,6 +173,9 @@ export interface AbsHttpCtx {
 
     //执行api后续完结函数
     runAfters();
+
+    //当请求被取消
+    onAbort(fn: Function);
 }
 
 function _msgpack_encode(obj: any): Buffer {
@@ -432,6 +435,22 @@ export class ApiHttpCtx implements AbsHttpCtx {
             }
         }
     }
+
+    private _onAborts: Function[];
+    public onAbort(fn: (err: Error) => void) {
+        if (!this._onAborts) {
+            this._onAborts = [fn];
+        } else {
+            this._onAborts.push(fn);
+        }
+    }
+    public doAbort(err: Error) {
+        if (this._onAborts) {
+            this._onAborts.forEach(f => {
+                f(err);
+            });
+        }
+    }
 }
 
 //websocket-请求上下文关联
@@ -601,6 +620,8 @@ export class WsApiHttpCtx implements AbsHttpCtx {
         for (var v of a.values()) {
             v[0](...v[1]);
         }
+    }
+    public onAbort(fn: Function) {
     }
 }
 
