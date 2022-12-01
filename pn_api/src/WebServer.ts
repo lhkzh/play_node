@@ -33,6 +33,8 @@ export interface WebServer_Config {
     www?: string;
     prefixs?: string[];
     maxHeaderSize?: number;
+
+    prop?: { maxRequestsPerSocket?: number, maxHeadersCount?: number, timeout?: number, keepAliveTimeout?: number, requestTimeout?: number, headersTimeout?: number };
     ssl?: {
         cert: any;
         key: any;
@@ -71,6 +73,15 @@ export class WebServer {
         }
         if (this.config.body_parser) {
             setReadFormOptions(this.config.body_parser);
+        }
+        this.server.on("dropRequest", (req, sock) => {
+            console.warn("WebServer.dropRequest 503");
+        });
+        this.server.maxHeadersCount = 256;
+        if (config.prop) {
+            for (var e of Object.entries(config.prop)) {
+                this.server[e[0]] = e[1];
+            }
         }
     }
 

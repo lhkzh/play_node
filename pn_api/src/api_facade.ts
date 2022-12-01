@@ -962,12 +962,20 @@ export function REPEATER(t: RepeaterApiClass, pathCode: number = 0) {
 
 function do_repeater_request(reject: boolean, toUrl: string, req: http.IncomingMessage, res: http.ServerResponse, complete: (url: string, err: Error) => void) {
     return new Promise((fn_ok, fn_fail) => {
-        let hfail = (e: Error) => {
+        let _cbk: boolean;
+        let cbk = (err?: Error) => {
+            if (!_cbk) {
+                _cbk = true;
+                err && fn_fail(err);
+                !err && fn_ok(true);
+                complete(toUrl, err);
+            }
+        };
+        let hfail = (err: Error) => {
             if (!res.writableEnded) {
-                res.writeHead(500, e.toString());
+                res.writeHead(500, err.toString());
                 res.end();
-                fn_fail(e);
-                complete(toUrl, e);
+                cbk(err);
             }
         };
         if (reject) {
@@ -976,7 +984,9 @@ function do_repeater_request(reject: boolean, toUrl: string, req: http.IncomingM
         }
         let hmod = toUrl.startsWith("https:") ? https : http;
         try {
-            let hreq: http.ClientRequest = hmod.request(toUrl, { method: req.method, headers: { ...req.headers, origin: new URL(toUrl).origin }, rejectUnauthorized: false }, hres => {
+            let abort = new AbortController();
+            let hopts: any = { method: req.method, headers: { ...req.headers, origin: new URL(toUrl).origin }, rejectUnauthorized: false, signal: abort.signal, abort: abort.signal };
+            let hreq: http.ClientRequest = hmod.request(toUrl, hopts, hres => {
                 res.writeHead(hres.statusCode, hres.statusMessage, hres.headers);
                 hres.on('data', function (chunk) {
                     res.write(chunk);
@@ -984,18 +994,19 @@ function do_repeater_request(reject: boolean, toUrl: string, req: http.IncomingM
                 hres.on('end', () => {
                     if (!res.writableEnded) {
                         res.end();
-                        fn_ok(true);
-                        complete(toUrl, null);
+                        cbk(null);
                     }
                 });
             });
             hreq.on('error', hfail);
+            req.on('error', err => {
+                abort.abort();
+                hreq.destroy();
+                cbk(err);
+            });
             if (req.method.charAt(0) == 'P') {
                 readRawProcess(req, (isLast, buf, err) => {
-                    if (err) {
-                        hreq.destroy();
-                        hfail(err);
-                    } else {
+                    if (!err) {
                         if (buf) {
                             hreq.write(buf);
                         }
