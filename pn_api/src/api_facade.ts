@@ -202,7 +202,7 @@ function api_run_wrap(constructor, res: any, key: string, filter: ApiFilterHandl
         try {
             if (request.req && request.res && request.address) {
                 ctx = new ApiHttpCtx(request, new res());
-                request.on("error", error => (ctx as ApiHttpCtx).doAbort(error));
+                request.req.on("error", error => (ctx as ApiHttpCtx).doAbort(error));
             } else {
                 ctx = new WsApiHttpCtx(request, pathArg);
                 if (markFlag != 8) {//非系统内对websocket绑定的调用，需要发送数据给客户端（客户端主动请求、服务端定时主动调用模拟请求后发回）
