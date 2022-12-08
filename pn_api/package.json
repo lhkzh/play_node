@@ -1,6 +1,6 @@
 {
   "name": "pn_api",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "api framework for nodejs",
   "main": "./dist/index.js",
   "types": "./@types/index.d.ts",

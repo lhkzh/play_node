@@ -339,7 +339,6 @@ export class ApiHttpCtx implements AbsHttpCtx {
     }
 
     private send_res(src: any, data: string | Buffer, contentType?: string) {
-        this.debug(src);
         if (contentType) {
             this.res.setHeader("Content-Type", contentType);
         }
@@ -347,6 +346,7 @@ export class ApiHttpCtx implements AbsHttpCtx {
             data = Facade._encodePayload(this, data);
         }
         this.res.end(data);
+        this.debug(src);
     }
 
     private debug(obj) {
@@ -542,26 +542,25 @@ export class WsApiHttpCtx implements AbsHttpCtx {
 
     //发送一个msgpack编码对象
     public sendMsgpack(obj: any, contentType?: string) {
-        this.debug(obj);
         this.sendBuf(_msgpack_encode(obj), contentType);
+        this.debug(obj);
     }
 
     //发送一个xml编码对象
     public sendXml(xml: any, contentType?: string) {
+        this.sendStr(_xml_encode(xml), contentType);
         this.debug(xml);
-        xml = _xml_encode(xml);
-        this.sendStr(xml, contentType);
     }
 
     //发送一个str
     public sendStr(str: string | Buffer, contentType?: string) {
-        this.debug(str);
         this.sendTo(Buffer.isBuffer(str) ? <Buffer>str : Buffer.from(<string>str), false, contentType);
+        this.debug(str);
     }
 
     public sendBuf(buf: Buffer, contentType?: string) {
-        this.debug(buf);
         this.sendTo(buf, true, contentType);
+        this.debug(buf);
     }
 
     private sendTo(buf: Buffer, isBlob: boolean, contentType?: string) {

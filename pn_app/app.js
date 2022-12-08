@@ -19,7 +19,7 @@ if(process.env.OS.toString().toLowerCase().indexOf("windows")>=0){
             clearTimeout(imp["$_reloading_time_out"]);
             delete imp["$_reloading_time_out"];
             imp.reload();
-        },5000);
+        },3000);
     });
 }else{
     process.on('SIGUSR1', ()=>{imp.reload();});
