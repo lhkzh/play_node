@@ -63,8 +63,10 @@ export class Facade {
     public static _hookErr: (ctx: AbsHttpCtx, err: Error) => void;
     //api统计
     public static _hookTj: (apiPath: string, costMsTime: number) => void;
-    //msgpack 工具类
+    //msgpack 编码代理
     public static _msgpack: { encode: (d: any) => any, decode: (b: Buffer | Uint8Array) => any };
+    //xml 编码代理
+    public static _xml: { encode: (d: any) => any, decode: (b: string) => any };
 
     public static get _docs() {
         return old_docs;

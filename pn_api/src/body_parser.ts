@@ -49,10 +49,10 @@ export function readXmlCallBack(req: IncomingMessage, cb: (rsp: any) => void, er
     readTextCallBack(req, (str: string) => {
         let rsp = null;
         try {
-            rsp = require("fast-xml-parser").parse(str);
+            rsp = require("./api_facade").Facade._xml.decode(str);
         } catch (e) {
             err(e);
-            console.error("try: npm install fast-xml-parser");
+            console.error("try: npm install fast-xml-parser && Facade._xml=$wrap");
             return;
         }
         cb(rsp);
@@ -81,10 +81,10 @@ export function readMsgpackCallBack(req: IncomingMessage, cb: (rsp: any) => void
     readRawCallBack(req, (blob: Buffer) => {
         let rsp = null;
         try {
-            rsp = require("@msgpack/msgpack").decode(blob);
+            rsp = require("./api_facade").Facade._msgpack.decode(blob);
         } catch (e) {
             err(e);
-            console.error("try: npm install @msgpack/msgpack");
+            console.error("try: npm install @msgpack/msgpack && Facade._msgpack=$wrap");
             return;
         }
         cb(rsp);

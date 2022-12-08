@@ -148,10 +148,10 @@ export interface AbsHttpCtx {
     writeHeader(headers: any)
 
     //发送一个json编码对象
-    sendJson(obj: any, contentType?: string/*="text/html; charset=utf8"*/)
+    sendJson(obj: any, contentType?: string/*="application/json; charset=utf8"*/)
 
     //发送一个msgpack编码对象
-    sendMsgpack(obj: any, contentType?: string/*="text/html; charset=utf8"*/)
+    sendMsgpack(obj: any, contentType?: string/*="application/msgpack; charset=utf8"*/)
 
     //发送一个xml编码对象
     sendXml(xml: any, contentType?: string/*="text/html; charset=utf8"*/)
@@ -180,6 +180,12 @@ export interface AbsHttpCtx {
 
 function _msgpack_encode(obj: any): Buffer {
     return Facade._msgpack.encode(obj);
+}
+function _xml_encode(obj: any): Buffer | string {
+    if (typeof (obj) != 'string' || obj.charAt(0) != '<') {
+        return Facade._xml.encode(obj)
+    }
+    return obj;
 }
 
 //http-请求上下文关联
@@ -319,10 +325,7 @@ export class ApiHttpCtx implements AbsHttpCtx {
 
     //发送一个xml编码对象
     public sendXml(xml: any, contentType?: string) {
-        var src = xml;
-        if (typeof (xml) != 'string' || xml.charAt(0) != '<') {
-            xml = require("fast-xml-parser").convertToJsonString(xml);
-        }
+        var src = _xml_encode(xml);
         this.send_res(src, xml, contentType);
     }
 
@@ -546,9 +549,7 @@ export class WsApiHttpCtx implements AbsHttpCtx {
     //发送一个xml编码对象
     public sendXml(xml: any, contentType?: string) {
         this.debug(xml);
-        if (typeof (xml) != 'string' || xml.charAt(0) != '<') {
-            xml = require("fast-xml-parser").convertToJsonString(xml);
-        }
+        xml = _xml_encode(xml);
         this.sendStr(xml, contentType);
     }
 
@@ -570,8 +571,8 @@ export class WsApiHttpCtx implements AbsHttpCtx {
             t.writeBigInt64BE(this.src[0], 1);
             buf.copy(t, 9);
             this.con.send(t);
-        } else if (global["@sys"] && global["@sys"].debug) {
-            console.log("ApiWsCtx|%s !=>(sendToClosed) %s", this.getPath(), JSON.stringify(this.debugMark));
+        } else if (Facade._hootDebug) {
+            Facade._hootDebug("ApiWsCtx|%s !=>(sendToClosed) %s", this.getPath(), this.debugMark);
         }
     }
 
