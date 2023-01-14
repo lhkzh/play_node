@@ -393,17 +393,20 @@ function regist(constructor: any, path: string, res: any, filter: ApiFilterHandl
     }
     let routing = current_routing, apis: { [index: string]: Function } = current_apis, codeMap = current_codeMap;
     let doc_list: { method: string, name: string, path: string, code: number, rules: ApiParamRule[], cms: any }[] = [];
-    let tmpMaps = {};
+    let tmpMaps: any = {};
     for (let i = 0; i < subs.length; i++) {
-        var node = subs[i];
-        var key = node.key;
+        let node = subs[i];
+        let key = node.key;
         let relativePath = path == '/' && node.path.charAt(0) == '/' ? node.path : path + node.path;
         if (node.absolute) {
             relativePath = node.path.charAt(0) != '/' ? '/' + node.path : node.path;
         }
         node.path = relativePath;
-        var fn = node["@"] ? node["@"] : api_run_wrap(constructor, node.res || res, key, node.filter || filter, relativePath);
-        var ignore_path_case = Facade.ignorePathCase && normal_path_reg.test(relativePath);
+        let fn = node["@"] ? node["@"] : api_run_wrap(constructor, node.res || res, key, node.filter || filter, relativePath);
+        let ignore_path_case = Facade.ignorePathCase && normal_path_reg.test(relativePath);
+        if (node.bigFile) {
+            fn["@bigFile"] = true;
+        }
         apis[relativePath] = fn;
         if (ignore_path_case) {
             apis[path_first_lower(relativePath)] = fn;
@@ -470,11 +473,11 @@ function regist(constructor: any, path: string, res: any, filter: ApiFilterHandl
         tmpMaps["upgrade"][path] = tmpMaps["upgrade"][path.toLowerCase()] = tmpMaps["upgrade"][path_first_upper(path)] = fn;
     }
     if (routing) {
-        for (var fnName in tmpMaps) {
+        for (let fnName in tmpMaps) {
             let fnWraps = tmpMaps[fnName];
             for (let fnPath in fnWraps) {
                 // @ts-ignore
-                routing.push([fnName, fnPath, fnWraps[fnPath]])
+                routing.push([fnName, fnPath, fnWraps[fnPath]]);
             }
         }
     }
@@ -718,6 +721,7 @@ function route(method: string, pathInfo: string | ApiMethod, target: any, key: s
         if (pathOpt.filter) routingInfo.filter = pathOpt.filter;
         if (pathOpt.res) routingInfo.res = pathOpt.res;
         if (pathOpt.absolute) routingInfo.absolute = pathOpt.absolute;
+        if (pathOpt.bigFile) routingInfo.bigFile = pathOpt.bigFile;
     }
     target["$subs"].push(routingInfo);
 }

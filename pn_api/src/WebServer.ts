@@ -180,15 +180,22 @@ export class WebServer {
             if (routeRsp[0]["@"]) {// REPEATER
                 (<Function>routeRsp[0])(req, res);
             } else if (req.method.charAt(0) == 'P') {//POST - PUT
-                readBodyAutoPromise(req).then(body => {
+                if ((<Function>routeRsp[0])["@bigFile"] && req.headers["content-type"]?.includes("multipart/form-data")) {
                     routeRsp[0]({
                         req: req, res: res, address: tmps[0], query: { ...require("querystring").decode(tmps[1] || "") },
-                        body: body, pathArg: routeRsp[2]
+                        body: {}, pathArg: routeRsp[2]
                     }, routeRsp[1]);
-                }).catch(err => {
-                    this.sendErrRes(req, res, 500, "Read Error");
-                    console.error("WebServer.parse_body_err", req.url, err);
-                });
+                } else {
+                    readBodyAutoPromise(req).then(body => {
+                        routeRsp[0]({
+                            req: req, res: res, address: tmps[0], query: { ...require("querystring").decode(tmps[1] || "") },
+                            body: body, pathArg: routeRsp[2]
+                        }, routeRsp[1]);
+                    }).catch(err => {
+                        this.sendErrRes(req, res, 500, "Read Error");
+                        console.error("WebServer.parse_body_err", req.url, err);
+                    });
+                }
             } else {//GET
                 routeRsp[0]({
                     req: req, res: res, address: tmps[0], query: { ...require("querystring").decode(tmps[1] || "") },

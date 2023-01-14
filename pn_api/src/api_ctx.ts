@@ -206,7 +206,7 @@ export class ApiHttpCtx implements AbsHttpCtx {
         this.pathArg = info.pathArg;
         this.address = info.address;
         this.writer = writer;
-        this.res.cork();
+        // this.res.cork();
     }
 
     //请求是否包含post/put数据
@@ -739,6 +739,7 @@ export interface ApiRouting {
     filter?: ApiFilterHandler, //序列化方式
     res?: new () => AbsRes, //序列化方式
     absolute?: boolean,//是否需要忽略类路径（避免前缀追加问题）
+    bigFile?: boolean
 }
 
 //api过滤器参数
@@ -759,6 +760,7 @@ interface ApiRoute {
 export interface ApiMethod extends ApiRoute {
     //是否需要忽略类路径（避免前缀追加问题）
     absolute?: boolean,
+    bigFile?: boolean
 }
 
 //类标记参数

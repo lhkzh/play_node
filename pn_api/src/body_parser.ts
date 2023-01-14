@@ -216,6 +216,9 @@ export function readFormCallBack(req: IncomingMessage, cb: (rsp: any) => void, e
     busboy.on('finish', function () {
         cb(formData);
     });
+    busboy.on('error', e => {
+        err(e);
+    });
     if (req["onAborted"]) {//uNetWorking.js
         let res = <any>req;
         res.onData((chunk, isLast) => {
