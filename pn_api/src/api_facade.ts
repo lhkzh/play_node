@@ -61,6 +61,8 @@ export class Facade {
     public static _hootDebug: (...args) => void;
     //错误侦听
     public static _hookErr: (ctx: AbsHttpCtx, err: Error) => void;
+    //404侦听（如果返回true，表示自定义处理了404响应不在按照默认处理）
+    public static _hook404: (req: http.IncomingMessage, res: http.ServerResponse) => boolean;
     //api统计
     public static _hookTj: (apiPath: string, costMsTime: number) => void;
     //msgpack 编码代理

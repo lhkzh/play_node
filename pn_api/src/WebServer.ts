@@ -192,7 +192,7 @@ export class WebServer {
                             body: body, pathArg: routeRsp[2]
                         }, routeRsp[1]);
                     }).catch(err => {
-                        this.sendErrRes(req, res, 500, "Read Error");
+                        this.sendErrRes(req, res, 500, "Read Error", 500);
                         console.error("WebServer.parse_body_err", req.url, err);
                     });
                 }
@@ -222,10 +222,11 @@ export class WebServer {
         }
     }
 
-    private sendErrRes(req: IncomingMessage, res: ServerResponse, code: number, msg: string, statusCode?: number) {
-        if (statusCode) {
-            res.statusCode = statusCode;
+    private sendErrRes(req: IncomingMessage, res: ServerResponse, code: number, msg: string, statusCode: number) {
+        if (statusCode == 404 && Facade._hook404 != null && Facade._hook404(req, res)) {
+            return;
         }
+        res.statusCode = statusCode;
         // res.setHeader("Content-Type","application/json; charset=utf8");
         // res.end('{"code":500,"msg":"Read Error"}');
         let rsp = new Facade.defaultRes();
